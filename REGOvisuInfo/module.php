@@ -25,8 +25,7 @@ class REGOvisuInfo extends IPSModule
         $this->RegisterPropertyInteger('TemperatureVariable', 0);
         $this->RegisterPropertyInteger('Digits', 1);
 
-        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
-        $this->SetVisualizationType(2);
+        $this->SetVisualizationType(1);
     }
 
     public function ApplyChanges(): void
@@ -51,12 +50,7 @@ class REGOvisuInfo extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $inner = '<div class="werte" id="rego-werte"></div>'
-            . $this->RegoObjekte([
-                'Sonnenaufgang' => $this->ReadPropertyInteger('SunriseVariable'),
-                'Sonnenuntergang' => $this->ReadPropertyInteger('SunsetVariable'),
-                'Außentemperatur' => $this->ReadPropertyInteger('TemperatureVariable'),
-            ]);
+        $inner = '<div class="werte" id="rego-werte"></div>';
 
         $script = <<<'JS'
 function regoRenderInfo(eintraege) {

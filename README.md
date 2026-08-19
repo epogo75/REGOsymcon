@@ -103,18 +103,15 @@ Aufrufen/Speichern-Bit) sind in `DPT_TEILE` hinterlegt.
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
 mit einem Typ ohne Kachel (`taster`, `url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.
 
-## Aufgeklappt: die beteiligten Objekte
+## Detailseite und Verlauf
 
-Aufgeklappt zeigt jede Kachel unter der Bedienung die Objekte, auf die sie
-zeigt — mit Beschriftung, Gerätename und Gruppenadresse. Ein Klick öffnet das
-Objekt in Symcon (`openObject` aus dem HTML-SDK); dort steht der Verlauf, den
-das Deploy-Skript für alle Messwerte einschaltet. Die Kachel zeichnet keinen
-eigenen Graphen.
+Unter jeder Kachel legt das Deploy-Skript Verknüpfungen auf die Variablen an,
+mit denen sie verdrahtet ist — beschriftet nach ihrer Rolle („Schalten",
+„Position Rückmeldung", „Ist-Temperatur"). Die Detailseite der Kachel zeigt
+damit die beteiligten Gruppenadressen, jede mit ihrem eigenen Verlauf. Die
+Kachel selbst zeichnet nichts.
 
-Symcon bietet Modulen keinen Schalter, um Kachel und Vollbild zu
-unterscheiden — beide rufen dieselbe Funktion auf. Die Kacheln nutzen deshalb
-die Höhe des iframes: `@media (min-height: 300px)` blendet die Liste ein.
-Dafür steht der Visualisierungstyp auf 2 (Kachel und Vollbild).
+Nicht mehr verdrahtete Verknüpfungen entfernt das Skript wieder.
 
 ## Design
 

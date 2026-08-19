@@ -24,8 +24,7 @@ class REGOvisuDimmen extends IPSModule
         $this->RegisterPropertyInteger('BrightnessVariable', 0);
         $this->RegisterPropertyInteger('DimVariable', 0);
 
-        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
-        $this->SetVisualizationType(2);
+        $this->SetVisualizationType(1);
     }
 
     public function ApplyChanges(): void
@@ -121,10 +120,6 @@ regoRenderStatus(window.regoState.Status);
 regoRenderBrightness(window.regoState.Brightness);
 JS;
 
-        $inner .= $this->RegoObjekte(['Schalten' => $this->ReadPropertyInteger('SwitchVariable'),
-            'Status' => $this->ReadPropertyInteger('StatusVariable'),
-            'Dimmen' => $this->ReadPropertyInteger('DimVariable'),
-            'Helligkeit' => $this->ReadPropertyInteger('BrightnessVariable')]);
 
         return $this->RegoTile('dimmen', $inner, $script, [
             'Status'     => $this->CurrentStatus(),

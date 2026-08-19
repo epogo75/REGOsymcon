@@ -131,50 +131,6 @@ trait RegoVisuTile
     }
 
     /**
-     * Die beteiligten Objekte als Liste -- erscheint erst, wenn die Kachel
-     * aufgeklappt ist. Jede Zeile oeffnet das Objekt in Symcon; dort gibt es
-     * den Verlauf.
-     *
-     * $eintraege ist "Beschriftung => Variablen-ID".
-     */
-    protected function RegoObjekte(array $eintraege): string
-    {
-        $pfeil = '<svg class="objekt-pfeil" width="14" height="14" viewBox="0 0 24 24" fill="none" '
-            . 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
-            . 'aria-hidden="true"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>';
-
-        $zeilen = '';
-        $gesehen = [];
-        foreach ($eintraege as $label => $variableID) {
-            $variableID = (int) $variableID;
-            if (($variableID == 0) || !IPS_VariableExists($variableID) || isset($gesehen[$variableID])) {
-                continue;
-            }
-            $gesehen[$variableID] = true;
-
-            // Der Name des Geraets sagt mehr als der der Variable ("Value"),
-            // und die Gruppenadresse macht die Zeilen unterscheidbar -- bei
-            // einer Funktion heissen alle Geraete gleich.
-            $geraet = IPS_GetObject($variableID)['ParentID'];
-            $name = IPS_ObjectExists($geraet) ? IPS_GetName($geraet) : IPS_GetName($variableID);
-
-            if (IPS_InstanceExists($geraet)) {
-                $config = json_decode(IPS_GetConfiguration($geraet), true);
-                if (isset($config['Address1'], $config['Address2'], $config['Address3'])) {
-                    $name .= '  ·  ' . $config['Address1'] . '/' . $config['Address2'] . '/' . $config['Address3'];
-                }
-            }
-
-            $zeilen .= '<button type="button" class="objekt" onclick="openObject(' . $variableID . ')">'
-                . '<span class="objekt-label">' . htmlspecialchars((string) $label) . '</span>'
-                . '<span class="objekt-name">' . htmlspecialchars($name) . '</span>'
-                . $pfeil . '</button>';
-        }
-
-        return ($zeilen === '') ? '' : '<div class="objekte">' . $zeilen . '</div>';
-    }
-
-    /**
      * Eine Reihe gleich breiter Knoepfe.
      */
     protected function RegoButtons(string $buttons): string
@@ -306,6 +262,37 @@ svg{display:block}
     font-variant-numeric:tabular-nums;
 }
 .badge-danger{background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger)}
+
+/* Werteraster: mehrere Messwerte nebeneinander, jeder mit Beschriftung */
+.werte{display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; width:100%}
+.wert{display:flex; flex-direction:column; gap:.1rem; min-width:0}
+.wert-zahl{
+    font-size:1.25rem; font-weight:700; line-height:1.1; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums; color:var(--text); white-space:nowrap;
+}
+.wert-einheit{margin-left:.2rem; font-size:.75rem; font-weight:500; color:var(--text-muted)}
+.wert-label{
+    font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--text-muted); white-space:nowrap;
+}
+
+/* Klima: links der Istwert, rechts der Sollwert-Steller */
+.readout{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0}
+.readout-label{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text-muted);
+}
+.readout-value{font-size:17px; font-weight:700; font-variant-numeric:tabular-nums}
+.stepper{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+.stepper button{width:2.5rem; min-height:2.5rem; font-size:16px; display:grid; place-items:center}
+.stepper span{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; min-width:4rem; text-align:center}
+
+.muted{color:var(--text-faint); font-variant-numeric:tabular-nums}
+
+/* Anzeige-Kacheln oeffnen per Klick das Objekt in Symcon -- dort gibt es den
+   Verlauf, den die Kachel selbst nicht zeichnen soll. */
+.oeffnen{cursor:pointer}
+.oeffnen:hover .sensor-value,.oeffnen:hover .wert-zahl{color:var(--accent)}
 
 /* Werteraster: mehrere Messwerte nebeneinander, jeder mit Beschriftung */
 .werte{display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; width:100%}

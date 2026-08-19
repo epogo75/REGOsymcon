@@ -119,6 +119,31 @@ const HG_PREFIX      = 'regodeploy_hg_';
 const MG_PREFIX      = 'regodeploy_mg_';
 const GA_PREFIX      = 'regodeploy_ga_';
 const KACHEL_PREFIX  = 'regovisu_kachel_';
+const LINK_PREFIX    = 'regovisu_link_';
+
+// Beschriftung der Verknüpfungen, die unter jeder Kachel liegen -- sie
+// erscheinen so auf der Detailseite der Kachel in der Visualisierung.
+const LINK_BESCHRIFTUNG = [
+    'SwitchVariable'           => 'Schalten',
+    'StatusVariable'           => 'Status',
+    'DimVariable'              => 'Dimmen absolut',
+    'BrightnessVariable'       => 'Helligkeit',
+    'MoveVariable'             => 'Fahren',
+    'StepVariable'             => 'Stopp',
+    'PositionVariable'         => 'Position',
+    'PositionFeedbackVariable' => 'Position Rückmeldung',
+    'ActualVariable'           => 'Ist-Temperatur',
+    'SetpointVariable'         => 'Soll-Temperatur',
+    'SetpointFeedbackVariable' => 'Soll-Temperatur Rückmeldung',
+    'SceneVariable'            => 'Szenennummer',
+    'ModeVariable'             => 'Aufrufen/Speichern',
+    'ValueVariable'            => 'Messwert',
+    'SecondaryVariable'        => 'Zweiter Zustand',
+    'BatteryVariable'          => 'Batteriestand',
+    'SunriseVariable'          => 'Sonnenaufgang',
+    'SunsetVariable'           => 'Sonnenuntergang',
+    'TemperatureVariable'      => 'Außentemperatur',
+];
 
 const VERWALTETE_PREFIXE = [
     ETAGE_PREFIX, RAUM_PREFIX, GERAET_PREFIX, HG_PREFIX, MG_PREFIX, GA_PREFIX, KACHEL_PREFIX,
@@ -628,6 +653,12 @@ function sync_infokachel($visuId, $aussentemperatur, &$index, &$visited)
         IPS_ApplyChanges($id);
     }
 
+    sync_links($id, [
+        'Sonnenaufgang' => $sunrise,
+        'Sonnenuntergang' => $sunset,
+        'Außentemperatur' => $aussentemperatur,
+    ]);
+
     return $id;
 }
 
@@ -769,6 +800,62 @@ function finde_gridkonfiguration($items)
     return null;
 }
 
+/**
+ * Legt unter eine Kachel je verdrahteter Variable eine Verknüpfung.
+ *
+ * Die Detailseite einer Kachel zeigt deren Kindobjekte -- damit stehen dort
+ * die beteiligten Gruppenadressen mit ihren eigenen Verläufen, ohne dass die
+ * Kachel selbst etwas zeichnen muss. Verknüpfungen zu Variablen, die nicht
+ * mehr verdrahtet sind, verschwinden wieder.
+ *
+ * $eintraege ist "Beschriftung => Variablen-ID".
+ */
+function sync_links($kachelId, array $eintraege)
+{
+    $gewuenscht = [];
+    $position = 0;
+
+    foreach ($eintraege as $beschriftung => $variableID) {
+        $variableID = (int) $variableID;
+        if (($variableID == 0) || !IPS_VariableExists($variableID)) {
+            continue;
+        }
+
+        $ident = LINK_PREFIX . preg_replace('/[^a-z0-9]+/', '_', strtolower(
+            iconv('UTF-8', 'ASCII//TRANSLIT', (string) $beschriftung)
+        ));
+        if (isset($gewuenscht[$ident])) {
+            continue;
+        }
+        $gewuenscht[$ident] = true;
+
+        $linkId = @IPS_GetObjectIDByIdent($ident, $kachelId);
+        if ($linkId === false) {
+            $linkId = IPS_CreateLink();
+            IPS_SetIdent($linkId, $ident);
+            IPS_SetParent($linkId, $kachelId);
+        }
+        if (IPS_GetLink($linkId)['TargetID'] !== $variableID) {
+            IPS_SetLinkTargetID($linkId, $variableID);
+        }
+        if (IPS_GetName($linkId) !== $beschriftung) {
+            IPS_SetName($linkId, (string) $beschriftung);
+        }
+        IPS_SetPosition($linkId, $position++);
+    }
+
+    // Was nicht mehr gebraucht wird, verschwindet.
+    foreach (IPS_GetChildrenIDs($kachelId) as $kind) {
+        $obj = IPS_GetObject($kind);
+        if (($obj['ObjectType'] == 6) && (strpos($obj['ObjectIdent'], LINK_PREFIX) === 0)
+            && !isset($gewuenscht[$obj['ObjectIdent']])) {
+            IPS_DeleteLink($kind);
+        }
+    }
+
+    return count($gewuenscht);
+}
+
 // ---- Ablauf ----
 
 $modulStatus = ensure_module_installed();
@@ -820,6 +907,7 @@ if (isset($_IPS['SELF']) && ($_IPS['SELF'] > 0) && IPS_ObjectExists($_IPS['SELF'
 }
 
 $kachelIds = [];
+$links = 0;
 $messwerte = [];
 $aussentemperatur = 0;
 $kachelnNeu = 0;
@@ -1087,6 +1175,19 @@ foreach ($tree['etagen'] as $etagePosition => $etage) {
             IPS_SetPosition($kachelId, $funktionPosition);
             $kachelIds[] = $kachelId;
 
+            // Verknüpfungen für die Detailseite der Kachel.
+            $linkEintraege = [];
+            if ($listenWert !== null) {
+                foreach ($zeilen as $zeile) {
+                    $linkEintraege[$zeile['Label']] = $zeile['VariableID'];
+                }
+            } else {
+                foreach ($werte as $property => $varId) {
+                    $linkEintraege[LINK_BESCHRIFTUNG[$property] ?? $property] = $varId;
+                }
+            }
+            $links += sync_links($kachelId, $linkEintraege);
+
             // Messwerte: aufzeichnen, damit die Visualisierung Verläufe zeigt.
             if ($mapping['module'] === RGV_SENSOR) {
                 $messwerte = array_merge($messwerte, array_values($werte));
@@ -1162,8 +1263,8 @@ foreach ($verwaist as $ident => $info) {
 echo "REGOvisu-Deploy fertig.\n";
 echo "  Modul:    $modulStatus\n";
 echo sprintf("  Struktur: %d Räume unter \"Visu %s\"\n", $raeume, $tree['project_name']);
-echo sprintf("  Kacheln:  %d neu, %d aktualisiert, %d unverändert\n",
-    $kachelnNeu, $kachelnAktualisiert, $kachelnUnveraendert);
+echo sprintf("  Kacheln:  %d neu, %d aktualisiert, %d unverändert, %d Verknüpfungen\n",
+    $kachelnNeu, $kachelnAktualisiert, $kachelnUnveraendert, $links);
 echo sprintf("  KNX:      %d Adressen neu, %d vorhanden, %d ohne passendes Symcon-Modul; davon %d freie\n",
     $gaNeu, $gaVorhanden, $gaUebersprungen, $freie);
 $masseText = [];

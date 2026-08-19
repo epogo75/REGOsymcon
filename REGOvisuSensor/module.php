@@ -34,8 +34,7 @@ class REGOvisuSensor extends IPSModule
         $this->RegisterPropertyString('SecondaryTextFalse', 'Nein');
         $this->RegisterPropertyInteger('BatteryVariable', 0);
 
-        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
-        $this->SetVisualizationType(2);
+        $this->SetVisualizationType(1);
     }
 
     public function ApplyChanges(): void
@@ -93,9 +92,6 @@ window.regoHandlers['Reading'] = regoRenderReading;
 regoRenderReading(window.regoState.Reading);
 JS;
 
-        $inner .= $this->RegoObjekte(['Messwert' => $this->ReadPropertyInteger('ValueVariable'),
-            'Zweiter Zustand' => $this->ReadPropertyInteger('SecondaryVariable'),
-            'Batterie' => $this->ReadPropertyInteger('BatteryVariable')]);
 
         return $this->RegoTile('sensor', $inner, $script, ['Reading' => $this->CurrentReading()]);
     }
