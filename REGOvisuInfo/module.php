@@ -50,9 +50,20 @@ class REGOvisuInfo extends IPSModule
 
     public function GetVisualizationTile(): string
     {
+        // Das Datum steht als Zeile direkt unter der Ueberschrift, nicht als
+        // eigenes Feld -- darunter bleiben drei gleich breite Kacheln.
         $zeilen = [$this->CurrentInfo()];
-        return $this->RegoTile('info', $this->RegoFelder($zeilen),
-            $this->RegoFelderScript(), ['Felder' => $zeilen]);
+        $inner = '<div class="kopfzeile" id="rego-datum">' . htmlspecialchars($this->Datum()) . '</div>'
+            . $this->RegoFelder($zeilen);
+
+        $script = $this->RegoFelderScript() . <<<'JS'
+window.regoHandlers['Datum'] = function (text) {
+    document.getElementById('rego-datum').textContent = text;
+};
+JS;
+
+        return $this->RegoTile('info', $inner, $script,
+            ['Felder' => $zeilen, 'Datum' => $this->Datum()]);
     }
 
     /**
@@ -62,7 +73,7 @@ class REGOvisuInfo extends IPSModule
      */
     private function CurrentInfo(): array
     {
-        $felder = [['label' => 'Datum', 'text' => $this->Datum()]];
+        $felder = [];
 
         foreach ([
             ['SunriseVariable', 'Sonnenaufgang'],
@@ -109,5 +120,6 @@ class REGOvisuInfo extends IPSModule
     private function PushState(): void
     {
         $this->RegoPush('Felder', [$this->CurrentInfo()]);
+        $this->RegoPush('Datum', $this->Datum());
     }
 }

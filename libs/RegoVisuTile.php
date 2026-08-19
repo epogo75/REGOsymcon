@@ -483,6 +483,12 @@ svg{display:block}
    Etikett oben, Wert darunter, alles in kleinen Feldern nebeneinander.
    Die Schrift ist etwas groesser als dort -- in REGObase sitzt die Karte in
    einer dichten Seitenspalte, hier steht sie allein in einer Symcon-Kachel. */
+/* Zeile ueber den Feldern, etwa das Datum -- steht direkt unter der
+   Ueberschrift, die Symcon selbst zeichnet. */
+.kopfzeile{
+    width:100%; font-size:.8rem; font-weight:600; color:var(--text-muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 .felder{display:flex; flex-direction:column; gap:.4rem; width:100%}
 /* Eine Zeile je Gruppe: die drei Spannungen bleiben nebeneinander, auch wenn
    es eng wird -- die Spaltenzahl steht fest, nicht auto-fit. */
