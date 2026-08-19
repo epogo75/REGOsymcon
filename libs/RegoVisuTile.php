@@ -486,7 +486,8 @@ svg{display:block}
 /* Zeile ueber den Feldern, etwa das Datum -- steht direkt unter der
    Ueberschrift, die Symcon selbst zeichnet. */
 .kopfzeile{
-    width:100%; font-size:.8rem; font-weight:600; color:var(--text-muted);
+    width:100%; font-size:1.6rem; font-weight:600; letter-spacing:-.01em;
+    color:var(--text-muted);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .felder{display:flex; flex-direction:column; gap:.4rem; width:100%}
