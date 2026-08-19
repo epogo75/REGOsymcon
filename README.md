@@ -20,6 +20,7 @@ Kachel-Visualisierung schreibt den Instanznamen selbst darüber.
 | REGOvisu Klima | „Ist 21,5 °C", Stepper − / Soll / + |
 | REGOvisu Szene | Ein Knopf je Szene |
 | REGOvisu Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
+| REGOvisu Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
 
 ## Installation
 
@@ -79,13 +80,13 @@ Nichts daran ist geraten:
 | `sensor` / `rauchmelder` | Sensor | Rauchmelder ausgelöst, Batteriestand |
 | `sensor` / `wassermelder` | Sensor | Wassermelder ausgelöst, Batteriestand |
 | `sensor` (andere Unterart) | Sensor | die einzige Adresse der Funktion, wenn es genau eine gibt |
+| `wetterstation` | Wetterstation | alle Adressen der Funktion, sortiert; Zahlen ins Raster, Ja/Nein in die Pillen |
 
 Rückmeldeadressen faltet das Skript in ihre Primäradresse ein, deshalb zeigen
 Schreib- und Rückmelde-Eigenschaft bewusst auf dieselbe Variable.
 
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
-mit einem Typ ohne Kachel (`wetterstation`, `taster`, `url_aufruf`) werden
-übersprungen und am Ende einzeln mit Begründung genannt.
+mit einem Typ ohne Kachel (`taster`, `url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.
 
 ## Design
 

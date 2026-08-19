@@ -57,6 +57,34 @@ const RGV_JALOUSIE = '{23F455EC-9236-480B-B02F-E10CE43DBDE2}';
 const RGV_KLIMA    = '{FEB37553-F02A-4F1B-A669-15BCD71E0712}';
 const RGV_SZENE    = '{C2314D3B-F6AD-40E2-B5B7-6DB850E0AD5E}';
 const RGV_SENSOR   = '{0871A6F2-8912-4EC0-9C4F-616982DAFF34}';
+const RGV_WETTER   = '{6EFCE386-425F-4AF5-8440-B93CAA0B3C2E}';
+
+// Wetterstation: Reihenfolge, Nachkommastellen und ob "wahr" ein Alarm ist.
+// Die Aktionsnamen sind die des REGOdeploy-Funktionenkatalogs; was hier nicht
+// steht, landet unten in der Liste mit den Vorgaben des Variablenprofils.
+const WETTER_AKTIONEN = [
+    'Außentemperatur'        => ['rang' => 10, 'digits' => 1,  'alarm' => false],
+    'Windgeschwindigkeit'    => ['rang' => 20, 'digits' => 1,  'alarm' => false],
+    'Helligkeitswert Ost'    => ['rang' => 30, 'digits' => 0,  'alarm' => false],
+    'Helligkeitswert Süd'    => ['rang' => 31, 'digits' => 0,  'alarm' => false],
+    'Helligkeitswert West'   => ['rang' => 32, 'digits' => 0,  'alarm' => false],
+    'Helligkeitswert gesamt' => ['rang' => 33, 'digits' => 0,  'alarm' => false],
+    'Azimut'                 => ['rang' => 40, 'digits' => 0,  'alarm' => false],
+    'Elevation'              => ['rang' => 41, 'digits' => 0,  'alarm' => false],
+    'Datum'                  => ['rang' => 50, 'digits' => -1, 'alarm' => false],
+    'Uhrzeit'                => ['rang' => 51, 'digits' => -1, 'alarm' => false],
+    'Regen'                  => ['rang' => 60, 'digits' => -1, 'alarm' => true],
+    'Windalarm 1'            => ['rang' => 61, 'digits' => -1, 'alarm' => true],
+    'Windalarm 2'            => ['rang' => 62, 'digits' => -1, 'alarm' => true],
+    'Frostschutz'            => ['rang' => 63, 'digits' => -1, 'alarm' => true],
+    'Hitzeschutz'            => ['rang' => 64, 'digits' => -1, 'alarm' => true],
+    'Dämmerung'              => ['rang' => 70, 'digits' => -1, 'alarm' => false],
+    'Tag/Nacht (Tag=0)'      => ['rang' => 71, 'digits' => -1, 'alarm' => false],
+    'Sonne Fassade Nord'     => ['rang' => 80, 'digits' => -1, 'alarm' => false],
+    'Sonne Fassade Ost'      => ['rang' => 81, 'digits' => -1, 'alarm' => false],
+    'Sonne Fassade Süd'      => ['rang' => 82, 'digits' => -1, 'alarm' => false],
+    'Sonne Fassade West'     => ['rang' => 83, 'digits' => -1, 'alarm' => false],
+];
 
 const MODULE_CONTROL_GUID = '{B8A5067A-AFC2-3798-FEDC-BCD02A45615E}';
 const TILE_VISU_GUID      = '{B5B875BB-9B76-45FD-4E67-2607E45B3AC4}';
@@ -161,6 +189,13 @@ const KACHEL_MAPPING = [
     // Messwerte. Die Aktion je Unterart steht im Funktionenkatalog; für eine
     // Unterart, die hier nicht steht, greift die Regel weiter unten: hat die
     // Funktion genau eine Adresse, ist das eindeutig der Messwert.
+    'wetterstation' => [
+        'module' => RGV_WETTER,
+        // Diese Kachel bekommt eine Liste statt einzelner Felder -- siehe
+        // wetterstation_readings() weiter unten.
+        'props' => [],
+        'liste' => 'Readings',
+    ],
     'sensor' => [
         'module' => RGV_SENSOR,
         'props' => [
@@ -172,18 +207,23 @@ const KACHEL_MAPPING = [
         'props' => [
             'ValueVariable' => ['Temperatur'],
         ],
+        // Das KNX-Temperaturprofil bringt zwei Nachkommastellen mit; eine
+        // reicht und ist das, was REGObaseX1 zeigt.
+        'einstellungen' => ['Digits' => 1],
     ],
     'sensor|feuchte' => [
         'module' => RGV_SENSOR,
         'props' => [
             'ValueVariable' => ['Feuchte'],
         ],
+        'einstellungen' => ['Digits' => 0],
     ],
     'sensor|co2' => [
         'module' => RGV_SENSOR,
         'props' => [
             'ValueVariable' => ['CO2 Wert'],
         ],
+        'einstellungen' => ['Digits' => 0],
     ],
     'sensor|fensterkontakt' => [
         'module' => RGV_SENSOR,
@@ -192,6 +232,16 @@ const KACHEL_MAPPING = [
             'SecondaryVariable' => ['Fenster gekippt/geschlossen'],
             'BatteryVariable'   => ['Batteriestand'],
         ],
+        // Die mitgelieferten KNX-Profile sind englisch beschriftet
+        // ("Closed", "On") -- hier stehen die deutschen Texte.
+        'einstellungen' => [
+            'TextTrue'            => 'offen',
+            'TextFalse'           => 'geschlossen',
+            'AlarmOnTrue'         => true,
+            'SecondaryLabel'      => 'Fenster gekippt',
+            'SecondaryTextTrue'   => 'Ja',
+            'SecondaryTextFalse'  => 'Nein',
+        ],
     ],
     'sensor|rauchmelder' => [
         'module' => RGV_SENSOR,
@@ -199,12 +249,22 @@ const KACHEL_MAPPING = [
             'ValueVariable'   => ['Rauchmelder ausgelöst'],
             'BatteryVariable' => ['Batteriestand'],
         ],
+        'einstellungen' => [
+            'TextTrue'    => 'ausgelöst',
+            'TextFalse'   => 'ruhig',
+            'AlarmOnTrue' => true,
+        ],
     ],
     'sensor|wassermelder' => [
         'module' => RGV_SENSOR,
         'props' => [
             'ValueVariable'   => ['Wassermelder ausgelöst'],
             'BatteryVariable' => ['Batteriestand'],
+        ],
+        'einstellungen' => [
+            'TextTrue'    => 'ausgelöst',
+            'TextFalse'   => 'trocken',
+            'AlarmOnTrue' => true,
         ],
     ],
 ];
@@ -533,7 +593,13 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse)
                 ];
                 $dim = (array) ($config[$lage]['individualDimensions'] ?? []);
                 foreach ($kachelIds as $id) {
-                    $dim[(string) $id] = $masseFuerKachel;
+                    $eigen = $masseFuerKachel;
+                    if (IPS_GetInstance($id)['ModuleInfo']['ModuleID'] === RGV_WETTER) {
+                        // Die Wetterstation zeigt ein ganzes Werteraster --
+                        // sie bekommt die volle Breite und doppelte Höhe.
+                        $eigen = ['height' => $masseFuerKachel['height'] * 2, 'width' => $spalten];
+                    }
+                    $dim[(string) $id] = $eigen;
                 }
                 $config[$lage]['individualDimensions'] = empty($dim) ? new stdClass() : $dim;
                 foreach (['individualConfig', 'individualPositions'] as $feld) {
@@ -572,6 +638,38 @@ function finde_gridkonfiguration($items)
         }
     }
     return null;
+}
+
+/**
+ * Baut die Messwert-Liste der Wetterstation: jede Adresse der Funktion wird
+ * eine Zeile, sortiert nach der Reihenfolge oben.
+ */
+function wetterstation_readings($funktion, $geraetId)
+{
+    $zeilen = [];
+
+    foreach ($funktion['adressen'] as $adresse) {
+        $varId = variable_for_aktion($funktion, $adresse['aktion'], $geraetId);
+        if ($varId == 0) {
+            continue;
+        }
+        $vorgabe = WETTER_AKTIONEN[$adresse['aktion']] ?? ['rang' => 999, 'digits' => -1, 'alarm' => false];
+        $zeilen[] = [
+            'rang' => $vorgabe['rang'],
+            'zeile' => [
+                'VariableID' => $varId,
+                'Label' => $adresse['aktion'],
+                'Digits' => $vorgabe['digits'],
+                'Alarm' => $vorgabe['alarm'],
+            ],
+        ];
+    }
+
+    usort($zeilen, function ($a, $b) {
+        return ($a['rang'] <=> $b['rang']) ?: strcmp($a['zeile']['Label'], $b['zeile']['Label']);
+    });
+
+    return array_column($zeilen, 'zeile');
 }
 
 // ---- Ablauf ----
@@ -676,9 +774,23 @@ foreach ($tree['etagen'] as $etage) {
             }
             $mapping = KACHEL_MAPPING[$key];
 
+            // Kacheln mit Liste statt Einzelfeldern (Wetterstation).
+            if (isset($mapping['liste'])) {
+                $zeilen = wetterstation_readings($funktion, $geraetId);
+                if (empty($zeilen)) {
+                    $hinweise[] = "$bezeichnung: keine der Adressen ist in Symcon aktiv";
+                    continue;
+                }
+                $werte = [];
+                $fehlend = [];
+                $listenWert = json_encode($zeilen);
+            } else {
+                $listenWert = null;
+            }
+
             $werte = [];
             $fehlend = [];
-            foreach ($mapping['props'] as $property => $aktionen) {
+            foreach (($listenWert === null) ? $mapping['props'] : [] as $property => $aktionen) {
                 $varId = 0;
                 if (empty($aktionen)) {
                     // Ohne benannte Aktion nur dann verdrahten, wenn die
@@ -699,7 +811,7 @@ foreach ($tree['etagen'] as $etage) {
                 $werte[$property] = $varId;
             }
 
-            if (count($fehlend) === count($mapping['props'])) {
+            if (($listenWert === null) && (count($fehlend) === count($mapping['props']))) {
                 $hinweise[] = "$bezeichnung: keine der benötigten Adressen ist in Symcon aktiv";
                 continue;
             }
@@ -735,6 +847,17 @@ foreach ($tree['etagen'] as $etage) {
             foreach ($werte as $property => $varId) {
                 if (($current[$property] ?? 0) !== $varId) {
                     IPS_SetProperty($kachelId, $property, $varId);
+                    $apply = true;
+                }
+            }
+            if (($listenWert !== null) && (($current[$mapping['liste']] ?? '') !== $listenWert)) {
+                IPS_SetProperty($kachelId, $mapping['liste'], $listenWert);
+                $apply = true;
+            }
+            // Feste Vorgaben des Funktionstyps (Nachkommastellen, Texte).
+            foreach (($mapping['einstellungen'] ?? []) as $property => $vorgabe) {
+                if (!array_key_exists($property, $current) || ($current[$property] != $vorgabe)) {
+                    IPS_SetProperty($kachelId, $property, $vorgabe);
                     $apply = true;
                 }
             }

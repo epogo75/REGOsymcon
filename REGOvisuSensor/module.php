@@ -24,9 +24,15 @@ class REGOvisuSensor extends IPSModule
         parent::Create();
 
         $this->RegisterPropertyInteger('ValueVariable', 0);
-        $this->RegisterPropertyInteger('SecondaryVariable', 0);
-        $this->RegisterPropertyInteger('BatteryVariable', 0);
+        $this->RegisterPropertyInteger('Digits', -1);
+        $this->RegisterPropertyString('TextTrue', '');
+        $this->RegisterPropertyString('TextFalse', '');
         $this->RegisterPropertyBoolean('AlarmOnTrue', true);
+        $this->RegisterPropertyInteger('SecondaryVariable', 0);
+        $this->RegisterPropertyString('SecondaryLabel', '');
+        $this->RegisterPropertyString('SecondaryTextTrue', 'Ja');
+        $this->RegisterPropertyString('SecondaryTextFalse', 'Nein');
+        $this->RegisterPropertyInteger('BatteryVariable', 0);
 
         $this->SetVisualizationType(1);
     }
@@ -89,17 +95,30 @@ JS;
     private function CurrentReading(): array
     {
         $variableID = $this->ReadPropertyInteger('ValueVariable');
-        $formatiert = $this->Format($variableID);
+        $formatiert = $this->Format(
+            $variableID,
+            $this->ReadPropertyString('TextTrue'),
+            $this->ReadPropertyString('TextFalse'),
+            $this->ReadPropertyInteger('Digits')
+        );
 
         $badges = [];
 
         $zweiter = $this->ReadPropertyInteger('SecondaryVariable');
         if ($zweiter != 0) {
-            $wert = $this->Format($zweiter);
+            $wert = $this->Format(
+                $zweiter,
+                $this->ReadPropertyString('SecondaryTextTrue'),
+                $this->ReadPropertyString('SecondaryTextFalse')
+            );
             if ($wert['text'] !== '–') {
+                $beschriftung = trim($this->ReadPropertyString('SecondaryLabel'));
+                if ($beschriftung === '') {
+                    $beschriftung = IPS_GetName($zweiter);
+                }
                 $badges[] = [
-                    'text' => IPS_GetName($zweiter) . ': ' . trim($wert['text'] . ' ' . $wert['unit']),
-                    'alarm' => $wert['alarm'],
+                    'text' => $beschriftung . ': ' . trim($wert['text'] . ' ' . $wert['unit']),
+                    'alarm' => false,
                 ];
             }
         }
@@ -126,7 +145,7 @@ JS;
     /**
      * Formatiert eine Variable nach ihrem Profil.
      */
-    private function Format(int $variableID): array
+    private function Format(int $variableID, string $textTrue = '', string $textFalse = '', int $digits = -1): array
     {
         $leer = ['text' => '–', 'unit' => '', 'alarm' => false];
 
@@ -144,6 +163,15 @@ JS;
         $info = ($profil !== '') && IPS_VariableProfileExists($profil) ? IPS_GetVariableProfile($profil) : null;
 
         $alarm = ($variable['VariableType'] == 0) && ((bool) $wert === $this->ReadPropertyBoolean('AlarmOnTrue'));
+
+        // Eigene Beschriftung schlägt das Profil -- die mitgelieferten
+        // KNX-Profile sind englisch beschriftet ("Closed", "On").
+        if ($variable['VariableType'] == 0) {
+            $eigen = $wert ? $textTrue : $textFalse;
+            if (trim($eigen) !== '') {
+                return ['text' => $eigen, 'unit' => '', 'alarm' => $alarm];
+            }
+        }
 
         // Ja/Nein und Aufzählungen: die Beschriftung aus dem Profil.
         if ($info !== null) {
@@ -166,8 +194,11 @@ JS;
             return ['text' => (string) $wert, 'unit' => '', 'alarm' => false];
         }
 
-        $stellen = ($info !== null) ? (int) $info['Digits'] : (($variable['VariableType'] == 1) ? 0 : 1);
-        $text = number_format((float) $wert, max(0, $stellen), ',', '.');
+        $stellen = $digits;
+        if ($stellen < 0) {
+            $stellen = ($info !== null) ? (int) $info['Digits'] : (($variable['VariableType'] == 1) ? 0 : 1);
+        }
+        $text = number_format((float) $wert, max(0, $stellen), ',', '');
         $einheit = ($info !== null) ? trim((string) $info['Suffix']) : '';
 
         return ['text' => $text, 'unit' => $einheit, 'alarm' => false];

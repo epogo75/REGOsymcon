@@ -6,19 +6,61 @@
             "caption": "Messwert"
         },
         {
-            "type": "SelectVariable",
-            "name": "SecondaryVariable",
-            "caption": "Zweiter Zustand (optional, z. B. „gekippt“)"
+            "type": "NumberSpinner",
+            "name": "Digits",
+            "caption": "Nachkommastellen (-1 = aus dem Variablenprofil)",
+            "minimum": -1,
+            "maximum": 4
         },
         {
-            "type": "SelectVariable",
-            "name": "BatteryVariable",
-            "caption": "Batteriestand (optional)"
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "ValidationTextBox",
+                    "name": "TextTrue",
+                    "caption": "Text bei „wahr“ (leer = aus dem Profil)"
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "TextFalse",
+                    "caption": "Text bei „falsch“ (leer = aus dem Profil)"
+                }
+            ]
         },
         {
             "type": "CheckBox",
             "name": "AlarmOnTrue",
             "caption": "Zustand „wahr“ als Alarm hervorheben (Melder, Fenster offen)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "SecondaryVariable",
+            "caption": "Zweiter Zustand (optional)"
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "ValidationTextBox",
+                    "name": "SecondaryLabel",
+                    "caption": "Beschriftung (leer = Name der Variable)"
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "SecondaryTextTrue",
+                    "caption": "Text bei „wahr“"
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "SecondaryTextFalse",
+                    "caption": "Text bei „falsch“"
+                }
+            ]
+        },
+        {
+            "type": "SelectVariable",
+            "name": "BatteryVariable",
+            "caption": "Batteriestand (optional)"
         }
     ]
 }

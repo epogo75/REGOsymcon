@@ -261,6 +261,19 @@ svg{display:block}
 }
 .badge-danger{background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger)}
 
+/* Werteraster: mehrere Messwerte nebeneinander, jeder mit Beschriftung */
+.werte{display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; width:100%}
+.wert{display:flex; flex-direction:column; gap:.1rem; min-width:0}
+.wert-zahl{
+    font-size:1.25rem; font-weight:700; line-height:1.1; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums; color:var(--text); white-space:nowrap;
+}
+.wert-einheit{margin-left:.2rem; font-size:.75rem; font-weight:500; color:var(--text-muted)}
+.wert-label{
+    font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--text-muted); white-space:nowrap;
+}
+
 /* Klima: links der Istwert, rechts der Sollwert-Steller */
 .readout{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0}
 .readout-label{
