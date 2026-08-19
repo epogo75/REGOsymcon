@@ -50,8 +50,9 @@ class REGOvisuInfo extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        return $this->RegoTile('info', $this->RegoFelder($this->CurrentInfo()),
-            $this->RegoFelderScript(), ['Felder' => $this->CurrentInfo()]);
+        $zeilen = [$this->CurrentInfo()];
+        return $this->RegoTile('info', $this->RegoFelder($zeilen),
+            $this->RegoFelderScript(), ['Felder' => $zeilen]);
     }
 
     /**
@@ -107,6 +108,6 @@ class REGOvisuInfo extends IPSModule
 
     private function PushState(): void
     {
-        $this->RegoPush('Felder', $this->CurrentInfo());
+        $this->RegoPush('Felder', [$this->CurrentInfo()]);
     }
 }

@@ -56,35 +56,61 @@ class REGOvisuZaehler extends IPSModule
             $this->RegoFelderScript(), ['Felder' => $felder]);
     }
 
+    /**
+     * Die Felder der Karte, zeilenweise: vorn Leistung, Zaehlerstand und
+     * Heute, danach je Gruppe eine eigene Zeile -- die drei Spannungen bleiben
+     * so nebeneinander, die drei Stroeme ebenso.
+     */
     private function CurrentFelder(): array
     {
-        $felder = [];
+        $kopf = [];
 
         $leistung = $this->ReadPropertyInteger('PowerVariable');
         if (($leistung != 0) && IPS_VariableExists($leistung)) {
-            $felder[] = ['label' => 'Leistung', 'text' => $this->Formatiere($leistung, 0, 'W')];
+            $kopf[] = ['label' => 'Leistung', 'text' => $this->Formatiere($leistung, 0, 'W')];
         }
 
         $energie = $this->ReadPropertyInteger('EnergyVariable');
         if (($energie != 0) && IPS_VariableExists($energie)) {
-            $felder[] = ['label' => 'Zählerstand', 'text' => $this->Formatiere($energie, 0, 'kWh')];
-            $felder[] = ['label' => 'Heute', 'text' => $this->Heute($energie)];
+            $kopf[] = ['label' => 'Zählerstand', 'text' => $this->Formatiere($energie, 0, 'kWh')];
+            $kopf[] = ['label' => 'Heute', 'text' => $this->Heute($energie)];
         }
+
+        $ohneGruppe = [];
+        $gruppen = [];
 
         foreach ($this->Readings() as $zeile) {
             $variableID = (int) ($zeile['VariableID'] ?? 0);
             if (($variableID == 0) || !IPS_VariableExists($variableID)) {
                 continue;
             }
-            $label = trim((string) ($zeile['Label'] ?? '')) ?: IPS_GetName($variableID);
-            $felder[] = [
-                'label' => $label,
+
+            $feld = [
+                'label' => trim((string) ($zeile['Label'] ?? '')) ?: IPS_GetName($variableID),
                 'text' => $this->Formatiere($variableID, (int) ($zeile['Digits'] ?? -1),
                     trim((string) ($zeile['Unit'] ?? ''))),
             ];
+
+            $gruppe = trim((string) ($zeile['Group'] ?? ''));
+            if ($gruppe === '') {
+                $ohneGruppe[] = $feld;
+            } else {
+                $gruppen[$gruppe][] = $feld;
+            }
         }
 
-        return $felder;
+        $zeilen = [];
+        if (!empty($kopf)) {
+            $zeilen[] = $kopf;
+        }
+        if (!empty($ohneGruppe)) {
+            $zeilen[] = $ohneGruppe;
+        }
+        foreach ($gruppen as $felder) {
+            $zeilen[] = $felder;
+        }
+
+        return $zeilen;
     }
 
     /**
@@ -120,7 +146,7 @@ class REGOvisuZaehler extends IPSModule
         return number_format(max(0, $verbrauch), 2, ',', '') . ' kWh';
     }
 
-    private function Formatiere(int $variableID, int $stellen, string $einheit): string
+    private function Formatiere(int $variableID, int $stellen, string $einheit, bool $ausProfil = true): string
     {
         $variable = IPS_GetVariable($variableID);
         $profil = $variable['VariableCustomProfile'];
@@ -132,7 +158,7 @@ class REGOvisuZaehler extends IPSModule
         if ($stellen < 0) {
             $stellen = ($info !== null) ? (int) $info['Digits'] : 1;
         }
-        if ($einheit === '') {
+        if (($einheit === '') && $ausProfil) {
             $einheit = ($info !== null) ? trim((string) $info['Suffix']) : '';
         }
 

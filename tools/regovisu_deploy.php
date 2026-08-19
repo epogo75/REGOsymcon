@@ -74,15 +74,15 @@ $SONDER_MASSE = [
     ],
     // Info: vier Felder nebeneinander
     '{63561319-730C-4139-8F95-1DA3BD142C83}' => [
-        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
-        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
-        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
+        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
     ],
     // Zähler: Leistung, Zählerstand, Heute und die übrigen Messwerte
     '{A9DEE307-F3B2-48A2-9960-245799F8BBD9}' => [
-        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
-        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 6], 'hoch' => ['breite' => 6, 'hoehe' => 6]],
-        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
+        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
     ],
 ];
 
@@ -118,7 +118,9 @@ const FINDER_BLOCK_C = 2570;
 const FINDER_BLOCK_D = 2638;
 
 const FINDER_MESSGROESSEN = [
-    // Schlüssel => [Block, Offset, Beschriftung, Einheit, Nachkommastellen, Profil, aktiv, Faktor]
+    // Schlüssel => [Block, Offset, Beschriftung, Einheit, Nachkommastellen, Profil, aktiv, Faktor, Gruppe]
+    // Zeilen mit gleicher Gruppe stehen in der Kachel zusammen in einem Feld
+    // ("232,3 / 232,5 / 230,5 V") statt jede in einem eigenen.
     // Der Faktor ist Symcons eigene Umrechnung in der Adress-Instanz
     // (0 = keine); die Energiezähler liefern Wh, angezeigt wird kWh.
     'wirkleistung'        => [FINDER_BLOCK_A,  0, 'Wirkleistung',            'W',    0, '~Watt',   true],
@@ -126,17 +128,17 @@ const FINDER_MESSGROESSEN = [
     'scheinleistung'      => [FINDER_BLOCK_A,  2, 'Scheinleistung',          'VA',   0, '',        false],
     'leistungsfaktor'     => [FINDER_BLOCK_A,  3, 'Leistungsfaktor',         '',     2, '',        true],
     'frequenz'            => [FINDER_BLOCK_A,  4, 'Frequenz',                'Hz',   2, '',        true],
-    'spannung_l1'         => [FINDER_BLOCK_A,  5, 'Spannung L1',             'V',    1, '~Volt',   true],
-    'spannung_l2'         => [FINDER_BLOCK_A,  6, 'Spannung L2',             'V',    1, '~Volt',   true],
-    'spannung_l3'         => [FINDER_BLOCK_A,  7, 'Spannung L3',             'V',    1, '~Volt',   true],
+    'spannung_l1'         => [FINDER_BLOCK_A,  5, 'Spannung L1',             'V',    1, '~Volt',   true,  0, 'Spannung'],
+    'spannung_l2'         => [FINDER_BLOCK_A,  6, 'Spannung L2',             'V',    1, '~Volt',   true,  0, 'Spannung'],
+    'spannung_l3'         => [FINDER_BLOCK_A,  7, 'Spannung L3',             'V',    1, '~Volt',   true,  0, 'Spannung'],
     'spannung_mittel_ln'  => [FINDER_BLOCK_A,  8, 'Spannung Mittel L-N',     'V',    1, '~Volt',   false],
     'spannung_u12'        => [FINDER_BLOCK_A,  9, 'Spannung L1-L2',          'V',    1, '~Volt',   false],
     'spannung_u23'        => [FINDER_BLOCK_A, 10, 'Spannung L2-L3',          'V',    1, '~Volt',   false],
     'spannung_u31'        => [FINDER_BLOCK_A, 11, 'Spannung L3-L1',          'V',    1, '~Volt',   false],
     'spannung_mittel_ll'  => [FINDER_BLOCK_A, 12, 'Spannung Mittel L-L',     'V',    1, '~Volt',   false],
-    'strom_l1'            => [FINDER_BLOCK_A, 13, 'Strom L1',                'A',    2, '~Ampere', true],
-    'strom_l2'            => [FINDER_BLOCK_A, 14, 'Strom L2',                'A',    2, '~Ampere', true],
-    'strom_l3'            => [FINDER_BLOCK_A, 15, 'Strom L3',                'A',    2, '~Ampere', true],
+    'strom_l1'            => [FINDER_BLOCK_A, 13, 'Strom L1',                'A',    2, '~Ampere', true,  0, 'Strom'],
+    'strom_l2'            => [FINDER_BLOCK_A, 14, 'Strom L2',                'A',    2, '~Ampere', true,  0, 'Strom'],
+    'strom_l3'            => [FINDER_BLOCK_A, 15, 'Strom L3',                'A',    2, '~Ampere', true,  0, 'Strom'],
     'strom_summe'         => [FINDER_BLOCK_A, 16, 'Strom Summe',             'A',    2, '~Ampere', false],
     'strom_mittel'        => [FINDER_BLOCK_A, 19, 'Strom Mittel',            'A',    2, '~Ampere', false],
 
@@ -1077,11 +1079,40 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
         IPS_SetParent($gatewayId, $technikId);
         $index[$gatewayIdent] = ['id' => $gatewayId, 'parent' => $technikId];
     }
+    // Blockweise lesen statt je Adresse einzeln: auf einem RTU-zu-TCP-Gateway
+    // laufen zehn gleichzeitige Einzelabfragen durcheinander, Antworten landen
+    // dann bei der falschen Adresse (gemessen: Frequenz zeigte den Wert der
+    // Spannung L1). REGObase liest aus demselben Grund Bloecke mit Pause.
+    $bloecke = [];
+    foreach ([FINDER_BLOCK_A => 40, FINDER_BLOCK_B => 40, FINDER_BLOCK_C => 30, FINDER_BLOCK_D => 22] as $start => $anzahl) {
+        $gebraucht = false;
+        foreach (FINDER_MESSGROESSEN as $m) {
+            if (($m[0] === $start) && $m[6]) {
+                $gebraucht = true;
+                break;
+            }
+        }
+        if ($gebraucht) {
+            $bloecke[] = ['Function' => 4, 'Address' => $start, 'Quantity' => $anzahl, 'Poller' => $zaehler['poller']];
+        }
+    }
+
     $vorher = json_decode(IPS_GetConfiguration($gatewayId), true);
-    if (($vorher['GatewayMode'] != 2) || ($vorher['DeviceID'] != $zaehler['slave']) || $vorher['SwapWords']) {
-        IPS_SetProperty($gatewayId, 'GatewayMode', 2);
-        IPS_SetProperty($gatewayId, 'DeviceID', $zaehler['slave']);
-        IPS_SetProperty($gatewayId, 'SwapWords', false);
+    $soll = [
+        'GatewayMode' => 2,
+        'DeviceID' => $zaehler['slave'],
+        'SwapWords' => false,
+        'DelayTimeRTU' => 50,
+        'DataBlocks' => json_encode($bloecke),
+    ];
+    $aendern = false;
+    foreach ($soll as $eigenschaft => $wert) {
+        if (($vorher[$eigenschaft] ?? null) != $wert) {
+            IPS_SetProperty($gatewayId, $eigenschaft, $wert);
+            $aendern = true;
+        }
+    }
+    if ($aendern) {
         IPS_ApplyChanges($gatewayId);
     }
     if (IPS_GetInstance($gatewayId)['ConnectionID'] !== $socketId) {
@@ -1099,6 +1130,7 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
     foreach (FINDER_MESSGROESSEN as $key => $messgroesse) {
         list($block, $offset, $beschriftung, $einheit, $stellen, $profil, $aktiv) = $messgroesse;
         $faktor = $messgroesse[7] ?? 0;
+        $gruppe = $messgroesse[8] ?? '';
         $ident = MODBUS_PREFIX . $schluessel . '_' . $key;
         if (!$aktiv) {
             continue;
@@ -1124,7 +1156,8 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
             'ByteOrder' => 0,                 // Big-Endian
             'WriteFunctionCode' => 0,         // nur lesen
             'Factor' => $faktor,
-            'Poller' => $zaehler['poller'],
+            // 0 = nicht selbst pollen, der Wert kommt aus dem Block des Gateways
+            'Poller' => 0,
         ];
         $vorher = json_decode(IPS_GetConfiguration($adresseId), true);
         $aendern = false;
@@ -1159,9 +1192,14 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
             } elseif ($key === 'energie_bezug') {
                 $energieId = $varId;
             } else {
+                // In einer Gruppenzeile stehen drei Felder nebeneinander --
+                // "Spannung L1" waere dort abgeschnitten, also nur "L1"; die
+                // Einheit steht ohnehin im Wert.
+                $kurz = ($gruppe !== '') ? trim(str_replace($gruppe, '', $beschriftung)) : $beschriftung;
                 $zeilen[] = [
                     'VariableID' => $varId,
-                    'Label' => $beschriftung,
+                    'Label' => ($kurz !== '') ? $kurz : $beschriftung,
+                    'Group' => $gruppe,
                     'Unit' => $einheit,
                     'Digits' => $stellen,
                 ];

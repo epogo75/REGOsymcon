@@ -31,7 +31,16 @@
                 {
                     "caption": "Beschriftung",
                     "name": "Label",
-                    "width": "200px",
+                    "width": "180px",
+                    "add": "",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    }
+                },
+                {
+                    "caption": "Gruppe",
+                    "name": "Group",
+                    "width": "140px",
                     "add": "",
                     "edit": {
                         "type": "ValidationTextBox"

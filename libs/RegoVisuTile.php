@@ -132,42 +132,65 @@ trait RegoVisuTile
 
     /**
      * Kachelchen-Raster: je Eintrag ein Feld mit Etikett und Wert.
-     * $eintraege ist eine Liste aus ['label' => ..., 'text' => ...].
+     *
+     * $zeilen ist eine Liste von Zeilen, jede Zeile eine Liste aus
+     * ['label' => ..., 'text' => ...]. Was in einer Zeile steht, bleibt
+     * nebeneinander -- so teilen sich etwa die drei Spannungen eine Zeile.
      */
-    protected function RegoFelder(array $eintraege): string
+    protected function RegoFelder(array $zeilen): string
     {
-        $felder = '';
-        foreach ($eintraege as $eintrag) {
-            $felder .= '<span class="feld">'
-                . '<span class="feld-label">' . htmlspecialchars((string) $eintrag['label']) . '</span>'
-                . '<span class="feld-wert">' . htmlspecialchars((string) $eintrag['text']) . '</span>'
-                . '</span>';
+        $html = '';
+        foreach ($zeilen as $zeile) {
+            if (empty($zeile)) {
+                continue;
+            }
+            $felder = '';
+            foreach ($zeile as $eintrag) {
+                $felder .= '<span class="feld">'
+                    . '<span class="feld-label">' . htmlspecialchars((string) $eintrag['label']) . '</span>'
+                    . '<span class="feld-wert">' . htmlspecialchars((string) $eintrag['text']) . '</span>'
+                    . '</span>';
+            }
+            $html .= '<div class="feld-zeile" style="grid-template-columns:repeat('
+                . count($zeile) . ',minmax(0,1fr))">' . $felder . '</div>';
         }
-        return '<div class="felder" id="rego-felder">' . $felder . '</div>';
+
+        return '<div class="felder" id="rego-felder">' . $html . '</div>';
     }
 
     protected function RegoFelderScript(): string
     {
         return <<<'JS'
-function regoRenderFelder(eintraege) {
-    window.regoState.Felder = eintraege;
+function regoRenderFelder(zeilen) {
+    window.regoState.Felder = zeilen;
     var raster = document.getElementById('rego-felder');
     raster.innerHTML = '';
-    (eintraege || []).forEach(function (eintrag) {
-        var feld = document.createElement('span');
-        feld.className = 'feld';
+    (zeilen || []).forEach(function (zeile) {
+        if (!zeile || !zeile.length) {
+            return;
+        }
+        var reihe = document.createElement('div');
+        reihe.className = 'feld-zeile';
+        reihe.style.gridTemplateColumns = 'repeat(' + zeile.length + ',minmax(0,1fr))';
 
-        var label = document.createElement('span');
-        label.className = 'feld-label';
-        label.textContent = eintrag.label;
+        zeile.forEach(function (eintrag) {
+            var feld = document.createElement('span');
+            feld.className = 'feld';
 
-        var wert = document.createElement('span');
-        wert.className = 'feld-wert';
-        wert.textContent = eintrag.text;
+            var label = document.createElement('span');
+            label.className = 'feld-label';
+            label.textContent = eintrag.label;
 
-        feld.appendChild(label);
-        feld.appendChild(wert);
-        raster.appendChild(feld);
+            var wert = document.createElement('span');
+            wert.className = 'feld-wert';
+            wert.textContent = eintrag.text;
+
+            feld.appendChild(label);
+            feld.appendChild(wert);
+            reihe.appendChild(feld);
+        });
+
+        raster.appendChild(reihe);
     });
 }
 window.regoHandlers['Felder'] = regoRenderFelder;
@@ -444,10 +467,10 @@ svg{display:block}
    Etikett oben, Wert darunter, alles in kleinen Feldern nebeneinander.
    Die Schrift ist etwas groesser als dort -- in REGObase sitzt die Karte in
    einer dichten Seitenspalte, hier steht sie allein in einer Symcon-Kachel. */
-.felder{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(5.2rem,1fr));
-    gap:.4rem; width:100%;
-}
+.felder{display:flex; flex-direction:column; gap:.4rem; width:100%}
+/* Eine Zeile je Gruppe: die drei Spannungen bleiben nebeneinander, auch wenn
+   es eng wird -- die Spaltenzahl steht fest, nicht auto-fit. */
+.feld-zeile{display:grid; gap:.4rem; width:100%}
 .feld{
     display:flex; flex-direction:column; gap:.1rem; overflow:hidden;
     background:var(--surface-3); border:1px solid var(--border);
