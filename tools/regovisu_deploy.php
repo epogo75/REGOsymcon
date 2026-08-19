@@ -48,6 +48,7 @@ const RGV_KLIMA    = '{FEB37553-F02A-4F1B-A669-15BCD71E0712}';
 const RGV_SZENE    = '{C2314D3B-F6AD-40E2-B5B7-6DB850E0AD5E}';
 
 const MODULE_CONTROL_GUID = '{B8A5067A-AFC2-3798-FEDC-BCD02A45615E}';
+const TILE_VISU_GUID      = '{B5B875BB-9B76-45FD-4E67-2607E45B3AC4}';
 const KNX_GATEWAY_GUID    = '{1C902193-B044-43B8-9433-419F09C641B8}';
 const KNX_DEVICE_GUID     = '{FB223058-3084-C5D0-C7A2-3B8D2E73FE8A}';
 
@@ -422,6 +423,88 @@ function variable_for_aktion($funktion, $aktion, $geraetId)
     return 0;
 }
 
+/**
+ * Richtet die Kachel-Visualisierung ein: sie startet im Visu-Ordner des
+ * Projekts (dessen Etagen sind damit die erste Ebene), und jede REGOvisu-
+ * Kachel bekommt die Höhe einer Zeile statt der vollen Standardhöhe.
+ *
+ * Die Kachelkonfiguration ist eine Map "Name -> Konfiguration"; bestehende
+ * Konfigurationen bleiben erhalten, nur die Maße der eigenen Kacheln werden
+ * gesetzt.
+ */
+function richte_visualisierung_ein($visuRootId, $kachelIds)
+{
+    $angepasst = 0;
+
+    foreach (IPS_GetInstanceListByModuleID(TILE_VISU_GUID) as $visId) {
+        if (json_decode(IPS_GetConfiguration($visId), true)['BaseID'] !== $visuRootId) {
+            IPS_SetProperty($visId, 'BaseID', $visuRootId);
+            IPS_ApplyChanges($visId);
+        }
+
+        if (empty($kachelIds)) {
+            continue;
+        }
+
+        $liste = finde_gridkonfiguration(json_decode(IPS_GetConfigurationForm($visId), true)['elements']);
+        if (!is_array($liste)) {
+            continue;
+        }
+
+        $map = [];
+        foreach ($liste as $eintrag) {
+            $config = is_string($eintrag['Config']) ? json_decode($eintrag['Config'], true) : $eintrag['Config'];
+            if (!is_array($config)) {
+                continue;
+            }
+            foreach (['landscape', 'portrait'] as $lage) {
+                if (!isset($config[$lage]) || (($config[$lage]['crossAxis'] ?? null) === null)) {
+                    continue;
+                }
+                $masse = ['height' => 1, 'width' => 3];
+                $dim = (array) ($config[$lage]['individualDimensions'] ?? []);
+                foreach ($kachelIds as $id) {
+                    $dim[(string) $id] = $masse;
+                }
+                $config[$lage]['individualDimensions'] = empty($dim) ? new stdClass() : $dim;
+                foreach (['individualConfig', 'individualPositions'] as $feld) {
+                    if (empty($config[$lage][$feld])) {
+                        $config[$lage][$feld] = new stdClass();
+                    }
+                }
+            }
+            $map[$eintrag['Name']] = $config;
+        }
+
+        if (!empty($map) && VISU_SaveGridConfiguration($visId, json_encode($map))) {
+            $angepasst++;
+        }
+    }
+
+    return $angepasst;
+}
+
+/**
+ * Fischt die Kachelkonfigurations-Liste aus dem Konfigurationsformular.
+ */
+function finde_gridkonfiguration($items)
+{
+    foreach ($items as $item) {
+        if (($item['name'] ?? '') === 'GridConfiguration') {
+            return $item['values'] ?? [];
+        }
+        foreach (['items', 'elements', 'actions'] as $schluessel) {
+            if (isset($item[$schluessel]) && is_array($item[$schluessel])) {
+                $treffer = finde_gridkonfiguration($item[$schluessel]);
+                if ($treffer !== null) {
+                    return $treffer;
+                }
+            }
+        }
+    }
+    return null;
+}
+
 // ---- Ablauf ----
 
 $modulStatus = ensure_module_installed();
@@ -468,11 +551,12 @@ $rootId    = sync_category(DEPLOY_ROOT_IDENT, 'REGOdeploy', 1, 0, $index, $visit
 $geraeteId = sync_category(KNX_GERAETE_IDENT, 'KNX-Geräte', 0, $rootId, $index, $visited);
 
 // Das laufende Skript legt sich selbst in den REGOdeploy-Ordner.
-if (isset($_IPS['SELF']) && IPS_ObjectExists($_IPS['SELF'])
+if (isset($_IPS['SELF']) && ($_IPS['SELF'] > 0) && IPS_ObjectExists($_IPS['SELF'])
     && (IPS_GetObject($_IPS['SELF'])['ParentID'] !== $rootId)) {
     IPS_SetParent($_IPS['SELF'], $rootId);
 }
 
+$kachelIds = [];
 $kachelnNeu = 0;
 $kachelnAktualisiert = 0;
 $kachelnUnveraendert = 0;
@@ -587,6 +671,7 @@ foreach ($tree['etagen'] as $etage) {
                 $geaendert = true;
             }
             IPS_SetPosition($kachelId, $funktion['sort_order']);
+            $kachelIds[] = $kachelId;
 
             if ($neu) {
                 $kachelnNeu++;
@@ -647,6 +732,8 @@ if ($MIT_ADRESSKATALOG && isset($tree['gruppenadressen'])) {
     }
 }
 
+$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds);
+
 // Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
 $verwaist = [];
 foreach ($index as $ident => $info) {
@@ -686,6 +773,8 @@ if ($MIT_ADRESSKATALOG) {
     echo sprintf("  Katalog:  %d Adressen neu, %d vorhanden, %d ohne Symcon-Zuordnung\n",
         $gaNeu, $gaVorhanden, $gaUebersprungen);
 }
+echo sprintf("  Visu:     %d Visualisierung(en) auf \"%s\" gestartet, Kacheln auf Zeilenhöhe\n",
+    $visuAngepasst, IPS_GetName($visuId));
 echo sprintf("  Verwaist: %d Objekte (%d verschoben)\n", count($verwaist), $verschoben);
 
 if (!empty($hinweise)) {

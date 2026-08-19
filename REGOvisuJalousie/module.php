@@ -69,6 +69,14 @@ class REGOvisuJalousie extends IPSModule
                 $this->RegoWrite($this->ReadPropertyInteger('StepVariable'), true);
                 break;
 
+            case 'Position':
+                $target = $this->ReadPropertyInteger('PositionVariable');
+                if ($target == 0) {
+                    $target = $this->ReadPropertyInteger('PositionFeedbackVariable');
+                }
+                $this->RegoWrite($target, $this->RegoCastNumber($target, (float) $Value));
+                break;
+
             default:
                 return;
         }
@@ -78,7 +86,8 @@ class REGOvisuJalousie extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $controls = '<span class="jalousie">'
+        $controls = $this->RegoSlider('rego-pos', '', 'regoPos')
+            . '<span class="jalousie">'
             . '<button type="button" onclick="requestAction(\'Up\', true)">Auf</button>'
             . '<button type="button" onclick="requestAction(\'Stop\', true)">Stopp</button>'
             . '<button type="button" onclick="requestAction(\'Down\', true)">Ab</button>'
@@ -87,7 +96,20 @@ class REGOvisuJalousie extends IPSModule
         $script = <<<'JS'
 function regoRenderPosition(value) {
     window.regoState.Position = value;
+    if (!window.regoDragging) {
+        document.querySelector('#rego-pos input').value = value === null ? 0 : value;
+        regoFill('rego-pos', value);
+    }
     regoValue(value === null ? '' : regoNumber(value) + ' %');
+}
+function regoPosPreview(value) {
+    window.regoDragging = true;
+    regoFill('rego-pos', parseFloat(value));
+    regoValue(regoNumber(parseFloat(value)) + ' %');
+}
+function regoPos(value) {
+    window.regoDragging = false;
+    requestAction('Position', parseFloat(value));
 }
 window.regoHandlers['Position'] = regoRenderPosition;
 regoRenderPosition(window.regoState.Position);

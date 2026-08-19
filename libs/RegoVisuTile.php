@@ -105,12 +105,12 @@ trait RegoVisuTile
     protected function RegoTile(string $type, string $value, string $controls, string $script, array $state = []): string
     {
         return $this->RegoCss()
-            . '<div class="row" id="rego-row" data-type="' . $type . '">'
+            . '<div class="tile"><div class="row" id="rego-row" data-type="' . $type . '">'
             . '<span class="dot" id="rego-dot" aria-hidden="true"></span>'
             . '<span class="row-icon" id="rego-icon">' . $this->RegoIcon($type) . '</span>'
             . '<span class="row-main"><span class="row-value" id="rego-value">' . $value . '</span></span>'
             . '<span class="row-ctrl">' . $controls . '</span>'
-            . '</div>'
+            . '</div></div>'
             . '<script>'
             . 'window.regoState = ' . json_encode($state) . ';'
             . $this->RegoBoot()
@@ -166,17 +166,26 @@ trait RegoVisuTile
     --shadow-card:0 1px 2px rgba(0,0,0,.4);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
 body{
     font-family:var(--sans)!important;
-    font-size:12px; line-height:1.35; color:var(--text);
-    background:transparent; padding:0!important; margin:0!important;
+    font-size:14px; line-height:1.4; color:var(--text);
+    background:transparent; margin:0!important; padding:0!important;
     -webkit-tap-highlight-color:transparent; user-select:none;
     -webkit-font-smoothing:antialiased;
 }
+/* Die Kachel-Visualisierung schreibt ihre Ueberschrift ueber das iframe und
+   gibt die noetigen Abstaende als Query-Parameter mit. Die werden hier als
+   Innenabstand gesetzt -- sonst klebt der Inhalt in der Ueberschrift. Der
+   Inhalt sitzt mittig, damit er auf hohen Kacheln nicht oben festhaengt. */
+.tile{
+    display:flex; align-items:center; min-height:100%;
+    padding:var(--pad-top,10px) var(--pad-side,10px) var(--pad-bottom,10px);
+}
 button{
-    font-family:inherit; font-size:11px; font-weight:600; color:var(--text);
+    font-family:inherit; font-size:13px; font-weight:600; color:var(--text);
     background:var(--surface-3); border:1px solid var(--border-strong);
-    border-radius:var(--radius-sm); padding:.25rem .55rem; cursor:pointer;
+    border-radius:var(--radius-sm); padding:.4rem .8rem; cursor:pointer;
     transition:background .15s ease, border-color .15s ease, opacity .15s ease;
 }
 button:hover:not(:disabled){background:var(--surface-hover)}
@@ -186,29 +195,29 @@ svg{display:block}
 /* Eine Zeile; die Hoehe kommt aus dem Inhalt, damit die Kachel nicht auf die
    volle Hoehe des Kachelplatzes aufgeblasen wird. */
 .row{
-    display:flex; align-items:center; gap:8px; width:100%;
+    display:flex; align-items:center; gap:10px; width:100%;
     background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius-md); padding:6px 8px; box-shadow:var(--shadow-card);
+    border-radius:var(--radius-md); padding:10px 12px; box-shadow:var(--shadow-card);
 }
 .row-icon{
-    width:24px; height:24px; border-radius:var(--radius-sm); flex:0 0 auto;
+    width:34px; height:34px; border-radius:var(--radius-md); flex:0 0 auto;
     display:grid; place-items:center;
     background:var(--surface-3); color:var(--accent);
 }
-.row-icon svg{width:14px;height:14px}
-.row-main{min-width:0; flex:1}
+.row-icon svg{width:19px;height:19px}
+.row-main{min-width:0; flex:0 1 auto}
 .row-value{
-    display:block; font-size:12px; font-weight:600; color:var(--text-muted);
+    display:block; font-size:14px; font-weight:600; color:var(--text-muted);
     font-variant-numeric:tabular-nums;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.row-ctrl{display:flex; align-items:center; gap:5px; flex:0 0 auto}
+.row-ctrl{display:flex; align-items:center; gap:8px; flex:1 1 auto; justify-content:flex-end}
 .dot{display:none}
 
 /* AN/AUS -- an ist rot, wie in REGObaseX1 */
 .onoff-button{
-    min-width:3.1rem; min-height:1.65rem; padding:.2rem .5rem;
-    border-radius:var(--radius-sm); font-weight:700; font-size:11px; letter-spacing:.02em;
+    min-width:4rem; min-height:2.3rem; padding:.4rem .85rem;
+    border-radius:var(--radius-md); font-weight:700; font-size:13px; letter-spacing:.02em;
     transition:background-color .15s ease, border-color .15s ease, color .15s ease;
 }
 .onoff-button-on{background:var(--danger-bg); border:1px solid var(--danger-border); color:var(--danger)}
@@ -216,40 +225,42 @@ svg{display:block}
 .onoff-button-unknown{background:var(--surface-3); border:1px solid var(--border); color:var(--text-faint)}
 
 /* Prozentregler mit Akzent-Griff */
-.chan{position:relative; display:flex; align-items:center; flex:1 1 auto; min-width:48px; max-width:88px}
+.chan{position:relative; display:flex; align-items:center; flex:1 1 auto; min-width:90px}
 .chan-track{
-    position:relative; flex:1 1 auto; height:5px; border-radius:999px;
+    position:relative; flex:1 1 auto; height:10px; border-radius:999px;
     background:var(--border-strong); cursor:pointer;
 }
 .chan-fill{position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:var(--accent)}
 .chan-thumb{
     position:absolute; top:50%; transform:translate(-50%,-50%);
-    width:14px; height:14px; border-radius:50%; background:var(--accent);
+    width:26px; height:26px; border-radius:50%; background:var(--accent);
+    box-shadow:0 1px 3px rgba(0,0,0,.25);
 }
 .chan input[type=range]{
-    position:absolute; inset:-8px 0; width:100%; height:auto; min-height:20px;
+    position:absolute; inset:-12px 0; width:100%; height:auto; min-height:34px;
     margin:0; opacity:0; cursor:pointer;
     -webkit-appearance:none; appearance:none;
 }
 
 /* Auf / Stopp / Ab */
-.jalousie{display:flex; gap:4px}
-.jalousie button{min-height:1.65rem; padding:.2rem .5rem}
+.jalousie{display:flex; gap:6px}
+.jalousie button{min-height:2.3rem; padding:.4rem .75rem}
 
 /* Soll-Temperatur */
-.stepper{display:flex; align-items:center; gap:4px}
-.stepper button{width:1.6rem; min-height:1.65rem; font-size:12px; display:grid; place-items:center}
+.stepper{display:flex; align-items:center; gap:6px}
+.stepper button{width:2.3rem; min-height:2.3rem; font-size:15px; display:grid; place-items:center}
+.stepper span{font-variant-numeric:tabular-nums; font-weight:600; min-width:3.6rem; text-align:center}
 
 /* Szenen */
-.scenes{display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end}
-.scenes button{min-height:1.65rem}
+.scenes{display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+.scenes button{min-height:2.3rem}
 .scenes button.primary{
     background:var(--accent-bg); border-color:color-mix(in srgb,var(--accent) 30%,transparent);
     color:var(--accent); font-weight:700;
 }
 .scenes button.primary:hover{background:var(--accent); color:var(--accent-contrast); border-color:var(--accent)}
 
-.muted{color:var(--text-faint)}
+.muted{color:var(--text-faint); font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--accent); outline-offset:1px; border-radius:var(--radius-sm)}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
@@ -267,7 +278,20 @@ CSS;
     {
         return <<<'JS'
 (function () {
-    var card = new URLSearchParams(window.location.search).get('cardcolor');
+    var query = new URLSearchParams(window.location.search);
+    var style = document.documentElement.style;
+    ['top', 'bottom'].forEach(function (seite) {
+        var wert = parseInt(query.get('margin' + seite), 10);
+        if (!isNaN(wert)) {
+            style.setProperty('--pad-' + seite, wert + 'px');
+        }
+    });
+    var seitlich = parseInt(query.get('marginside'), 10);
+    if (!isNaN(seitlich)) {
+        style.setProperty('--pad-side', seitlich + 'px');
+    }
+
+    var card = query.get('cardcolor');
     if (card && /^[0-9a-fA-F]{6}$/.test(card)) {
         var r = parseInt(card.substr(0, 2), 16),
             g = parseInt(card.substr(2, 2), 16),
