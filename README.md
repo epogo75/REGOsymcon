@@ -23,7 +23,7 @@ zeigt. Das Modul legt keine eigenen Variablen an und schreibt nichts, was nicht
 Symcon-Konsole → **Modules** (Kern-Instanzen → Modules) → **+** → URL eintragen:
 
 ```
-https://github.com/BENUTZER/SymconREGOvisu
+https://github.com/epogo75/SymconREGOvisu
 ```
 
 Danach unter *Instanz hinzufügen* nach `REGOvisu` suchen.
