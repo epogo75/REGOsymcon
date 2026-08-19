@@ -1,0 +1,14 @@
+{
+    "elements": [
+        {
+            "type": "SelectVariable",
+            "name": "TriggerVariable",
+            "caption": "Auslösen"
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "Label",
+            "caption": "Beschriftung des Knopfs"
+        }
+    ]
+}

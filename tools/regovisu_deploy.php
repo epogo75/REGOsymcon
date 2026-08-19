@@ -67,6 +67,8 @@ const RGV_SZENE    = '{C2314D3B-F6AD-40E2-B5B7-6DB850E0AD5E}';
 const RGV_SENSOR   = '{0871A6F2-8912-4EC0-9C4F-616982DAFF34}';
 const RGV_WETTER   = '{6EFCE386-425F-4AF5-8440-B93CAA0B3C2E}';
 const RGV_INFO     = '{63561319-730C-4139-8F95-1DA3BD142C83}';
+const RGV_TASTER   = '{2562CE14-21C3-4609-B04E-A9A69C51C684}';
+const RGV_URL      = '{E72DF487-94FC-4942-8473-1FBEAF87564B}';
 
 // Wetterstation: Reihenfolge, Nachkommastellen und ob "wahr" ein Alarm ist.
 // Die Aktionsnamen sind die des REGOdeploy-Funktionenkatalogs; was hier nicht
@@ -229,6 +231,22 @@ const KACHEL_MAPPING = [
         'vorbelegung' => [
             'Scenes' => '[{"Label":"Szene 1","Number":1},{"Label":"Szene 2","Number":2},{"Label":"Szene 3","Number":3}]',
         ],
+    ],
+
+    'taster' => [
+        'module' => RGV_TASTER,
+        'props' => [
+            'TriggerVariable' => ['Auslösen'],
+        ],
+    ],
+
+    // Der URL-Aufruf hat keine Gruppenadresse, sondern nur eine Adresse im
+    // Netz -- die steht in der Funktionsliste, nicht im Symcon-Export.
+    'url_aufruf' => [
+        'module' => RGV_URL,
+        'props' => [],
+        'ohne_adressen' => true,
+        'aus_meta' => ['Url' => 'url'],
     ],
 
     // Messwerte. Die Aktion je Unterart steht im Funktionenkatalog; für eine
@@ -1097,15 +1115,16 @@ foreach ($tree['etagen'] as $etagePosition => $etage) {
                 $hinweise[] = "$bezeichnung: in REGOdeploy nicht für die Visu freigegeben";
                 continue;
             }
-            if (empty($funktion['adressen'])) {
-                $hinweise[] = "$bezeichnung: in REGOdeploy sind keine Gruppenadressen hinterlegt";
-                continue;
-            }
-
             $unterart = ($info['unterart'] ?? '') ?: '';
             $key = ($unterart !== '') && isset(KACHEL_MAPPING[$funktion['funktionstyp'] . '|' . $unterart])
                 ? $funktion['funktionstyp'] . '|' . $unterart
                 : $funktion['funktionstyp'];
+            $ohneAdressen = KACHEL_MAPPING[$key]['ohne_adressen'] ?? false;
+
+            if (empty($funktion['adressen']) && !$ohneAdressen) {
+                $hinweise[] = "$bezeichnung: in REGOdeploy sind keine Gruppenadressen hinterlegt";
+                continue;
+            }
 
             if (!isset(KACHEL_MAPPING[$key])) {
                 $hinweise[] = "$bezeichnung: Funktionstyp '$key' hat kein Bedienelement";
@@ -1151,7 +1170,9 @@ foreach ($tree['etagen'] as $etagePosition => $etage) {
                 $werte[$property] = $varId;
             }
 
-            if (($listenWert === null) && (count($fehlend) === count($mapping['props']))) {
+            // Kacheln ohne Gruppenadressen (URL-Aufruf) trifft diese Pruefung nicht.
+            if (($listenWert === null) && !empty($mapping['props'])
+                && (count($fehlend) === count($mapping['props']))) {
                 $hinweise[] = "$bezeichnung: keine der benötigten Adressen ist in Symcon aktiv";
                 continue;
             }
@@ -1184,6 +1205,13 @@ foreach ($tree['etagen'] as $etagePosition => $etage) {
 
             $current = json_decode(IPS_GetConfiguration($kachelId), true);
             $apply = false;
+            foreach (($mapping['aus_meta'] ?? []) as $property => $feld) {
+                $wert = (string) ($info[$feld] ?? '');
+                if (($current[$property] ?? '') !== $wert) {
+                    IPS_SetProperty($kachelId, $property, $wert);
+                    $apply = true;
+                }
+            }
             foreach ($werte as $property => $varId) {
                 if (($current[$property] ?? 0) !== $varId) {
                     IPS_SetProperty($kachelId, $property, $varId);

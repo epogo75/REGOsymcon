@@ -148,6 +148,8 @@ trait RegoVisuTile
             'dimmen'   => '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
             'jalousie' => '<path d="M3 3h18"/><path d="M20 7H8"/><path d="M20 11H8"/><path d="M10 19h10"/><path d="M8 15h12"/><path d="M4 3v14a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3"/>',
             'klima'    => '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+            'taster'   => '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
+            'url'      => '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 19"/>',
             'szene'    => '<path d="M9.9 2.1 8.5 6.4 4.2 7.8l4.3 1.4 1.4 4.3 1.4-4.3 4.3-1.4-4.3-1.4Z"/><path d="M18 12l-.7 2.1-2.1.7 2.1.7.7 2.1.7-2.1 2.1-.7-2.1-.7Z"/><path d="M6.5 16l-.5 1.5-1.5.5 1.5.5.5 1.5.5-1.5 1.5-.5-1.5-.5Z"/>',
         ];
 
@@ -216,6 +218,17 @@ svg{display:block}
 /* Knopfreihe: gleich breit ueber die ganze Zeile, wie im Detail-Dialog */
 .buttons{display:flex; gap:8px; width:100%}
 .buttons button{flex:1 1 0; min-width:0; min-height:2.5rem}
+
+/* Verweis, der wie ein Knopf aussieht (URL-Aufruf) */
+.knopf-link{
+    flex:1 1 0; min-height:2.5rem;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--surface-3); border:1px solid var(--border);
+    border-radius:var(--radius-lg); color:var(--text);
+    font-size:14px; font-weight:600; text-decoration:none;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+}
+.knopf-link:hover{background:var(--surface-hover); border-color:var(--accent); color:var(--accent)}
 
 /* AN/AUS -- an ist rot */
 .onoff-button{min-height:2.5rem; font-weight:700; letter-spacing:.02em}

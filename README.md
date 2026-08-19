@@ -22,6 +22,8 @@ Kachel-Visualisierung schreibt den Instanznamen selbst darüber.
 | REGOvisu Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
 | REGOvisu Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
 | REGOvisu Info | Sonnenaufgang, Sonnenuntergang und Außentemperatur — steht auf der Startseite |
+| REGOvisu Taster | Ein Knopf, der auslöst — ohne Zustandsanzeige, weil ein Taster keinen hat |
+| REGOvisu URL-Aufruf | Ein Knopf, der eine Seite in einem neuen Tab öffnet |
 
 ## Installation
 
@@ -97,6 +99,8 @@ Typ gäbe es nichts zu erzeugen. Das Skript zählt sie und nennt sie am Ende.
 | `sensor` / `wassermelder` | Sensor | Wassermelder ausgelöst, Batteriestand |
 | `sensor` (andere Unterart) | Sensor | die einzige Adresse der Funktion, wenn es genau eine gibt |
 | `wetterstation` | Wetterstation | alle Adressen der Funktion, sortiert; Zahlen ins Raster, Ja/Nein in die Pillen |
+| `taster` | Taster | Auslösen |
+| `url_aufruf` | URL-Aufruf | keine Gruppenadresse — die Adresse kommt aus dem Feld `url` der Funktion |
 
 Rückmeldungen zeigen auf ihre eigene Adresse: bei „Licht — Ein/Aus" schreibt
 die Kachel auf die Schaltadresse und liest den Status von der
@@ -104,7 +108,7 @@ Rückmeldeadresse. Mehrteilige DPTs (etwa 18.001 für Szenen, mit Nummer und
 Aufrufen/Speichern-Bit) sind in `DPT_TEILE` hinterlegt.
 
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
-mit einem Typ ohne Kachel (`taster`, `url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.
+ohne passenden Kacheltyp werden übersprungen und am Ende einzeln mit Begründung genannt.
 
 ## Detailseite und Verlauf
 

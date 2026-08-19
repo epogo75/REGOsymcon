@@ -1,0 +1,14 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "Url",
+            "caption": "Adresse (URL)"
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "Label",
+            "caption": "Beschriftung des Knopfs"
+        }
+    ]
+}

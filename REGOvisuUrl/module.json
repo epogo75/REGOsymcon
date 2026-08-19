@@ -1,0 +1,13 @@
+{
+    "id": "{E72DF487-94FC-4942-8473-1FBEAF87564B}",
+    "name": "REGOvisuUrl",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOvisu URL-Aufruf"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGVUR"
+}
