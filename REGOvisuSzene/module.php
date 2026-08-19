@@ -20,6 +20,7 @@ class REGOvisuSzene extends IPSModule
         parent::Create();
 
         $this->RegisterPropertyInteger('SceneVariable', 0);
+        $this->RegisterPropertyInteger('ModeVariable', 0);
         $this->RegisterPropertyString('Scenes', '[]');
 
         $this->SetVisualizationType(1);
@@ -36,6 +37,14 @@ class REGOvisuSzene extends IPSModule
     {
         if ($Ident !== 'Scene') {
             return;
+        }
+
+        // DPT 18.001 hat zwei Teile: ein Bit "Aufrufen/Speichern" und die
+        // Nummer. Ohne das Bit auf "Aufrufen" wuerde ein Klick die Szene unter
+        // Umstaenden ueberschreiben statt sie zu starten.
+        $modus = $this->ReadPropertyInteger('ModeVariable');
+        if ($modus != 0) {
+            $this->RegoWrite($modus, false);
         }
 
         $target = $this->ReadPropertyInteger('SceneVariable');

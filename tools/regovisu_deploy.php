@@ -66,6 +66,7 @@ const RGV_KLIMA    = '{FEB37553-F02A-4F1B-A669-15BCD71E0712}';
 const RGV_SZENE    = '{C2314D3B-F6AD-40E2-B5B7-6DB850E0AD5E}';
 const RGV_SENSOR   = '{0871A6F2-8912-4EC0-9C4F-616982DAFF34}';
 const RGV_WETTER   = '{6EFCE386-425F-4AF5-8440-B93CAA0B3C2E}';
+const RGV_INFO     = '{63561319-730C-4139-8F95-1DA3BD142C83}';
 
 // Wetterstation: Reihenfolge, Nachkommastellen und ob "wahr" ein Alarm ist.
 // Die Aktionsnamen sind die des REGOdeploy-Funktionenkatalogs; was hier nicht
@@ -98,12 +99,22 @@ const MODULE_CONTROL_GUID = '{B8A5067A-AFC2-3798-FEDC-BCD02A45615E}';
 const TILE_VISU_GUID      = '{B5B875BB-9B76-45FD-4E67-2607E45B3AC4}';
 const KNX_GATEWAY_GUID    = '{1C902193-B044-43B8-9433-419F09C641B8}';
 const KNX_DEVICE_GUID     = '{FB223058-3084-C5D0-C7A2-3B8D2E73FE8A}';
+const ARCHIVE_GUID        = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
+const LOCATION_GUID       = '{45E97A63-F870-408A-B259-2933F7EABF74}';
+
+// Mehrteilige DPTs: das KNX-Gerät legt je Adresse mehrere Variablen an, die
+// Idents enden dann auf "Value0", "Value1" statt auf "Value". DPT 18.001 etwa
+// trennt die Szenennummer vom Bit "Aufrufen/Speichern".
+const DPT_TEILE = [
+    '18.001' => ['wert' => 'Value1', 'zusatz' => 'Value0'],
+];
 
 const VISU_ROOT_IDENT   = 'regodeploy_visu_root';
 const DEPLOY_ROOT_IDENT = 'regodeploy_root';
 const ORPHAN_ROOT_IDENT = 'regodeploy_orphan_root';
 const KNX_ROOT_IDENT    = 'regodeploy_knx_root';
 const KNX_GERAETE_IDENT = 'regovisu_knx_geraete';
+const INFO_IDENT        = 'regovisu_info';
 
 const ETAGE_PREFIX   = 'regodeploy_etage_';
 const RAUM_PREFIX    = 'regodeploy_raum_';
@@ -118,6 +129,7 @@ const VERWALTETE_PREFIXE = [
 ];
 const VERWALTETE_IDENTS = [
     VISU_ROOT_IDENT, DEPLOY_ROOT_IDENT, ORPHAN_ROOT_IDENT, KNX_ROOT_IDENT, KNX_GERAETE_IDENT,
+    INFO_IDENT,
 ];
 
 // Rein kosmetische Zuordnung für die "Tag"-Spalte des KNX-Geräts; sie steuert
@@ -191,6 +203,11 @@ const KACHEL_MAPPING = [
         'module' => RGV_SZENE,
         'props' => [
             'SceneVariable' => ['Szene'],
+            'ModeVariable'  => ['Szene'],
+        ],
+        'teile' => [
+            'SceneVariable' => 'wert',
+            'ModeVariable'  => 'zusatz',
         ],
     ],
 
@@ -529,7 +546,7 @@ function sync_gruppenadresse($adresse, $parentId, $gatewayId, &$index, &$visited
  * Die Aktion kann eine Primäradresse sein oder eine eingefaltete Rückmeldung;
  * in beiden Fällen ist die Variable die der Primäradresse.
  */
-function variable_for_aktion($funktion, $aktion, $geraetId)
+function variable_for_aktion($funktion, $aktion, $geraetId, $teil = 'wert')
 {
     foreach ($funktion['adressen'] as $adresse) {
         $treffer = ($adresse['aktion'] === $aktion);
@@ -546,7 +563,8 @@ function variable_for_aktion($funktion, $aktion, $geraetId)
         }
 
         list($h, $m, $s) = array_map('intval', explode('/', $adresse['group_address']));
-        $varId = @IPS_GetObjectIDByIdent(sprintf('GA_%d_%d_%d_Value', $h, $m, $s), $geraetId);
+        $endung = DPT_TEILE[(string) $adresse['dpt_id']][$teil] ?? 'Value';
+        $varId = @IPS_GetObjectIDByIdent(sprintf('GA_%d_%d_%d_%s', $h, $m, $s, $endung), $geraetId);
         return ($varId === false) ? 0 : $varId;
     }
     return 0;
@@ -685,6 +703,94 @@ function wetterstation_readings($funktion, $geraetId)
     return array_column($zeilen, 'zeile');
 }
 
+/**
+ * Schaltet Aufzeichnung und Diagramm für Messwerte ein.
+ */
+function aktiviere_aufzeichnung($variableIds)
+{
+    $archive = IPS_GetInstanceListByModuleID(ARCHIVE_GUID);
+    if (empty($archive)) {
+        return 0;
+    }
+    $archiveId = $archive[0];
+
+    $neu = 0;
+    foreach (array_unique(array_filter($variableIds)) as $variableID) {
+        if (!IPS_VariableExists($variableID)) {
+            continue;
+        }
+        if (!AC_GetLoggingStatus($archiveId, $variableID)) {
+            AC_SetLoggingStatus($archiveId, $variableID, true);
+            $neu++;
+        }
+        if (!AC_GetGraphStatus($archiveId, $variableID)) {
+            AC_SetGraphStatus($archiveId, $variableID, true);
+        }
+    }
+    if ($neu > 0) {
+        IPS_ApplyChanges($archiveId);
+    }
+
+    return $neu;
+}
+
+/**
+ * Die Infokachel auf der Startseite: Sonnenaufgang, Sonnenuntergang und
+ * Außentemperatur. Die Sonnenzeiten kommen aus Symcons Location-Instanz.
+ */
+function sync_infokachel($visuId, $aussentemperatur, &$index, &$visited)
+{
+    $location = IPS_GetInstanceListByModuleID(LOCATION_GUID);
+    $sunrise = 0;
+    $sunset = 0;
+    if (!empty($location)) {
+        $sunrise = @IPS_GetObjectIDByIdent('Sunrise', $location[0]);
+        $sunset = @IPS_GetObjectIDByIdent('Sunset', $location[0]);
+        $sunrise = ($sunrise === false) ? 0 : $sunrise;
+        $sunset = ($sunset === false) ? 0 : $sunset;
+    }
+
+    if (($sunrise == 0) && ($sunset == 0) && ($aussentemperatur == 0)) {
+        return 0;
+    }
+
+    $visited[INFO_IDENT] = true;
+
+    if (isset($index[INFO_IDENT])) {
+        $id = $index[INFO_IDENT]['id'];
+        if ($index[INFO_IDENT]['parent'] !== $visuId) {
+            IPS_SetParent($id, $visuId);
+            $index[INFO_IDENT]['parent'] = $visuId;
+        }
+    } else {
+        $id = IPS_CreateInstance(RGV_INFO);
+        IPS_SetIdent($id, INFO_IDENT);
+        IPS_SetParent($id, $visuId);
+        IPS_SetName($id, 'Info');
+        IPS_SetPosition($id, -1);
+        $index[INFO_IDENT] = ['id' => $id, 'parent' => $visuId];
+    }
+
+    $current = json_decode(IPS_GetConfiguration($id), true);
+    $soll = [
+        'SunriseVariable' => $sunrise,
+        'SunsetVariable' => $sunset,
+        'TemperatureVariable' => $aussentemperatur,
+    ];
+    $apply = false;
+    foreach ($soll as $property => $wert) {
+        if (($current[$property] ?? 0) !== $wert) {
+            IPS_SetProperty($id, $property, $wert);
+            $apply = true;
+        }
+    }
+    if ($apply) {
+        IPS_ApplyChanges($id);
+    }
+
+    return $id;
+}
+
 // ---- Ablauf ----
 
 $modulStatus = ensure_module_installed();
@@ -737,6 +843,8 @@ if (isset($_IPS['SELF']) && ($_IPS['SELF'] > 0) && IPS_ObjectExists($_IPS['SELF'
 }
 
 $kachelIds = [];
+$messwerte = [];
+$aussentemperatur = 0;
 $kachelnNeu = 0;
 $kachelnAktualisiert = 0;
 $kachelnUnveraendert = 0;
@@ -812,8 +920,9 @@ foreach ($tree['etagen'] as $etage) {
                         $varId = variable_for_aktion($funktion, $funktion['adressen'][0]['aktion'], $geraetId);
                     }
                 }
+                $teil = $mapping['teile'][$property] ?? 'wert';
                 foreach ($aktionen as $aktion) {
-                    $varId = variable_for_aktion($funktion, $aktion, $geraetId);
+                    $varId = variable_for_aktion($funktion, $aktion, $geraetId, $teil);
                     if ($varId != 0) {
                         break;
                     }
@@ -885,6 +994,20 @@ foreach ($tree['etagen'] as $etage) {
             IPS_SetPosition($kachelId, $funktion['sort_order']);
             $kachelIds[] = $kachelId;
 
+            // Messwerte: aufzeichnen, damit die Visualisierung Verläufe zeigt.
+            if ($mapping['module'] === RGV_SENSOR) {
+                $messwerte = array_merge($messwerte, array_values($werte));
+            } elseif ($mapping['module'] === RGV_WETTER) {
+                foreach ($zeilen as $zeile) {
+                    $messwerte[] = $zeile['VariableID'];
+                    if ($zeile['Label'] === 'Außentemperatur') {
+                        $aussentemperatur = $zeile['VariableID'];
+                    }
+                }
+            } elseif ($mapping['module'] === RGV_KLIMA) {
+                $messwerte[] = $werte['ActualVariable'] ?? 0;
+            }
+
             if ($neu) {
                 $kachelnNeu++;
             } elseif ($geaendert) {
@@ -944,6 +1067,13 @@ if ($MIT_ADRESSKATALOG && isset($tree['gruppenadressen'])) {
     }
 }
 
+$infoId = sync_infokachel($visuId, $aussentemperatur, $index, $visited);
+if ($infoId != 0) {
+    $kachelIds[] = $infoId;
+}
+
+$aufgezeichnet = aktiviere_aufzeichnung($messwerte);
+
 $visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $WETTER_MASSE);
 
 // Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
@@ -990,6 +1120,8 @@ foreach ($KACHEL_MASSE as $geraet => $m) {
     $masseText[] = sprintf('%s %dx%d/%dx%d', $geraet,
         $m['quer']['breite'], $m['quer']['hoehe'], $m['hoch']['breite'], $m['hoch']['hoehe']);
 }
+echo sprintf("  Messwerte:%d Variablen neu in der Aufzeichnung%s\n", $aufgezeichnet,
+    ($infoId != 0) ? ', Infokachel auf der Startseite' : '');
 echo sprintf("  Visu:     %d Visualisierung(en) starten auf \"%s\"; Kacheln quer/hoch: %s\n",
     $visuAngepasst, IPS_GetName($visuId), implode(', ', $masseText));
 echo sprintf("  Verwaist: %d Objekte (%d verschoben)\n", count($verwaist), $verschoben);

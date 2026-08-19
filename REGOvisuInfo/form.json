@@ -1,0 +1,26 @@
+{
+    "elements": [
+        {
+            "type": "SelectVariable",
+            "name": "SunriseVariable",
+            "caption": "Sonnenaufgang (Zeitstempel)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "SunsetVariable",
+            "caption": "Sonnenuntergang (Zeitstempel)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "TemperatureVariable",
+            "caption": "Außentemperatur"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "Digits",
+            "caption": "Nachkommastellen der Temperatur",
+            "minimum": 0,
+            "maximum": 2
+        }
+    ]
+}

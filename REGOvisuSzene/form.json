@@ -1,19 +1,14 @@
 {
     "elements": [
         {
-            "type": "ValidationTextBox",
-            "name": "Title",
-            "caption": "Bezeichnung (leer = Name der Instanz)"
-        },
-        {
-            "type": "CheckBox",
-            "name": "ShowHeader",
-            "caption": "Kopfzeile mit Symbol und Namen anzeigen"
+            "type": "SelectVariable",
+            "name": "SceneVariable",
+            "caption": "Szenennummer"
         },
         {
             "type": "SelectVariable",
-            "name": "SceneVariable",
-            "caption": "Szenen-Variable (Szenennummer)"
+            "name": "ModeVariable",
+            "caption": "Aufrufen/Speichern (optional; wird vor dem Aufruf auf „Aufrufen“ gesetzt)"
         },
         {
             "type": "List",
@@ -22,6 +17,7 @@
             "rowCount": 6,
             "add": true,
             "delete": true,
+            "changeOrder": true,
             "columns": [
                 {
                     "caption": "Bezeichnung",
@@ -36,11 +32,11 @@
                     "caption": "Szenennummer",
                     "name": "Number",
                     "width": "160px",
-                    "add": 0,
+                    "add": 1,
                     "edit": {
                         "type": "NumberSpinner",
-                        "minimum": 0,
-                        "maximum": 63
+                        "minimum": 1,
+                        "maximum": 64
                     }
                 }
             ]

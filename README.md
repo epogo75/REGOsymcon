@@ -21,6 +21,7 @@ Kachel-Visualisierung schreibt den Instanznamen selbst darüber.
 | REGOvisu Szene | Ein Knopf je Szene |
 | REGOvisu Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
 | REGOvisu Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
+| REGOvisu Info | Sonnenaufgang, Sonnenuntergang und Außentemperatur — steht auf der Startseite |
 
 ## Installation
 
@@ -35,6 +36,10 @@ Es installiert die Modulbibliothek selbst und baut danach alles auf:
    Geräte
 5. den vollständigen ETS-Adresskatalog unter „REGOdeploy > KNX"
    (abschaltbar über `$MIT_ADRESSKATALOG`)
+6. eine Infokachel auf der Startseite mit Sonnenauf- und -untergang aus
+   Symcons Location-Instanz und der Außentemperatur der Wetterstation
+7. Aufzeichnung und Diagramm für alle Messwerte (Sensoren, Wetterstation und
+   die Ist-Temperatur der Klimakacheln) über die Archive-Instanz
 
 In den Räumen stehen damit nur die Kacheln; alles Technische liegt darunter in
 „REGOdeploy".
