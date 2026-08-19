@@ -3,9 +3,10 @@
 //
 //   1. installiert die REGOvisu-Modulbibliothek, falls sie fehlt
 //   2. "Visu <Projekt>" mit Etagen und Räumen
-//   3. den ETS-Adresskatalog unter "REGOdeploy > KNX": Hauptgruppe und
-//      Mittelgruppe wie in der ETS, jede Gruppenadresse als eigenes, exakt
-//      typisiertes Gerät am KNX Gateway
+//   3. den kompletten Adresskatalog des importierten ETS-Projekts unter
+//      "REGOdeploy > KNX": Haupt- und Mittelgruppen mit ihren ETS-Namen, jede
+//      Gruppenadresse als eigenes, exakt typisiertes Gerät am KNX Gateway --
+//      auch die Adressen, die keiner REGOdeploy-Funktion gehören ("freie")
 //   4. in jeden Raum die passenden REGOvisu-Kacheln, verdrahtet mit den
 //      Variablen genau dieser Geräte -- jede Gruppenadresse existiert damit
 //      nur einmal in Symcon
@@ -343,6 +344,48 @@ function ensure_module_installed()
     throw new Exception('Modul geladen, aber nicht verfügbar -- Symcon neu starten und erneut ausführen');
 }
 
+/**
+ * DPT-Haupttyp -> Symcon-Modul, gelesen aus der Modulliste dieser Installation.
+ *
+ * Symcon liefert je Haupttyp ein Modul "KNX DPT <n>"; die Dimension ist immer
+ * der Nebentyp. Die Zuordnung wird nicht abgeschrieben, sondern hier gebildet
+ * -- so stimmt sie auch, wenn Symcon neue Typen nachliefert.
+ */
+function dpt_module()
+{
+    static $module = null;
+    if ($module !== null) {
+        return $module;
+    }
+
+    $module = [];
+    foreach (IPS_GetModuleList() as $guid) {
+        if (preg_match('/^KNX DPT (\d+)$/', IPS_GetModule($guid)['ModuleName'], $treffer)) {
+            $module[(int) $treffer[1]] = $guid;
+        }
+    }
+    return $module;
+}
+
+/**
+ * "9.001" -> Modul-GUID und Dimension.
+ */
+function dpt_zerlegen($dptId)
+{
+    $teile = explode('.', (string) $dptId, 2);
+    if ((count($teile) !== 2) || !is_numeric($teile[0]) || !is_numeric($teile[1])) {
+        return null;
+    }
+
+    $module = dpt_module();
+    $haupt = (int) $teile[0];
+    if (!isset($module[$haupt])) {
+        return null;
+    }
+
+    return ['modul' => $module[$haupt], 'dimension' => (int) $teile[1]];
+}
+
 function ist_verwaltet($ident)
 {
     if (in_array($ident, VERWALTETE_IDENTS, true)) {
@@ -399,15 +442,16 @@ function sync_category($ident, $name, $position, $parentId, &$index, &$visited)
 }
 
 /**
- * Eine einzelne Gruppenadresse des ETS-Katalogs als exakt typisiertes Gerät.
+ * Eine einzelne Gruppenadresse als exakt typisiertes Gerät.
  */
-function sync_gruppenadresse($adresse, $parentId, $gatewayId, &$index, &$visited)
+function sync_gruppenadresse($adresse, $name, $dptId, $parentId, $position, $gatewayId, &$index, &$visited)
 {
-    if (($adresse['symcon_module_id'] === null) || ($adresse['symcon_dimension'] === null)) {
+    $typ = dpt_zerlegen($dptId);
+    if ($typ === null) {
         return 'übersprungen';
     }
 
-    list($h, $m, $s) = array_map('intval', explode('/', $adresse['group_address']));
+    list($h, $m, $s) = array_map('intval', explode('/', $adresse));
     $ident = sprintf('%s%d_%d_%d', GA_PREFIX, $h, $m, $s);
     $visited[$ident] = true;
 
@@ -419,11 +463,11 @@ function sync_gruppenadresse($adresse, $parentId, $gatewayId, &$index, &$visited
         }
         $neu = false;
     } else {
-        $id = IPS_CreateInstance($adresse['symcon_module_id']);
+        $id = IPS_CreateInstance($typ['modul']);
         IPS_SetProperty($id, 'Address1', $h);
         IPS_SetProperty($id, 'Address2', $m);
         IPS_SetProperty($id, 'Address3', $s);
-        IPS_SetProperty($id, 'Dimension', $adresse['symcon_dimension']);
+        IPS_SetProperty($id, 'Dimension', $typ['dimension']);
         IPS_SetProperty($id, 'CapabilityRead', false);
         IPS_SetProperty($id, 'CapabilityWrite', true);
         IPS_SetProperty($id, 'CapabilityReceive', true);
@@ -436,9 +480,10 @@ function sync_gruppenadresse($adresse, $parentId, $gatewayId, &$index, &$visited
         $neu = true;
     }
 
-    if (IPS_GetName($id) !== $adresse['name']) {
-        IPS_SetName($id, $adresse['name']);
+    if (IPS_GetName($id) !== $name) {
+        IPS_SetName($id, $name);
     }
+    IPS_SetPosition($id, $position);
     if (IPS_GetInstance($id)['ConnectionID'] !== $gatewayId) {
         IPS_ConnectInstance($id, $gatewayId);
     }
@@ -783,37 +828,110 @@ $kachelnUnveraendert = 0;
 $raeume = 0;
 $hinweise = [];
 
-// Der ETS-Adresskatalog: jede Gruppenadresse als eigenes Gerät. Er entsteht
-// vor den Kacheln, denn die zeigen auf genau diese Variablen.
+// Der Adresskatalog. Im Modus "freie Gruppenadressen" ist die Wahrheit das
+// importierte ETS-Projekt: dessen Haupt- und Mittelgruppen mit ihren Namen und
+// allen Adressen, nicht nur denen, die REGOdeploy selbst vergeben hat. Fehlt
+// ein Import, bleibt der generierte Katalog aus dem Export die Quelle.
 $gaNeu = 0;
 $gaVorhanden = 0;
 $gaUebersprungen = 0;
+$freie = 0;
+$ohneDpt = [];
 
-if (isset($tree['gruppenadressen'])) {
+// DPT der Adressen, die einer Funktion gehören -- die schlägt den Wert aus der
+// ETS-Datei, weil die Funktion mit ihr arbeitet (etwa 18.001 statt 17.001 bei
+// Szenen). Rückmeldungen erben den DPT ihrer Primäradresse.
+$eigeneDpt = [];
+foreach ($tree['etagen'] as $etage) {
+    foreach ($etage['raeume'] as $raum) {
+        foreach ($raum['funktionen'] as $funktion) {
+            foreach ($funktion['adressen'] as $adresse) {
+                $eigeneDpt[$adresse['group_address']] = $adresse['dpt_id'];
+                foreach ($adresse['feedback_addresses'] as $fb) {
+                    $eigeneDpt[$fb['group_address']] = $adresse['dpt_id'];
+                }
+            }
+        }
+    }
+}
+
+$katalog = http_get_json(
+    "$REGODEPLOY_BASE_URL/api/projects/$REGODEPLOY_PROJECT_ID/knx-projekt-import/gruppenadressen",
+    $token
+);
+
+if (is_array($katalog) && !empty($katalog)) {
+    $knxId = sync_category(KNX_ROOT_IDENT, 'KNX', 1, $rootId, $index, $visited);
+
+    // Nach Haupt- und Mittelgruppe gliedern, Reihenfolge nach Nummer.
+    $gegliedert = [];
+    foreach ($katalog as $eintrag) {
+        $teile = explode('/', $eintrag['address']);
+        if (count($teile) !== 3) {
+            continue;
+        }
+        $hg = ($eintrag['hauptgruppe'] === null) ? (int) $teile[0] : (int) $eintrag['hauptgruppe'];
+        $mg = ($eintrag['mittelgruppe'] === null) ? (int) $teile[1] : (int) $eintrag['mittelgruppe'];
+
+        $gegliedert[$hg]['name'] = $eintrag['hauptgruppe_name'] ?: ('Hauptgruppe ' . $hg);
+        $gegliedert[$hg]['mittelgruppen'][$mg]['name'] = $eintrag['mittelgruppe_name'] ?: ('Mittelgruppe ' . $hg . '/' . $mg);
+        $gegliedert[$hg]['mittelgruppen'][$mg]['adressen'][] = $eintrag;
+    }
+    ksort($gegliedert);
+
+    foreach ($gegliedert as $hg => $hauptgruppe) {
+        $hgId = sync_category(HG_PREFIX . $hg, $hauptgruppe['name'], $hg, $knxId, $index, $visited);
+        ksort($hauptgruppe['mittelgruppen']);
+
+        foreach ($hauptgruppe['mittelgruppen'] as $mg => $mittelgruppe) {
+            $mgId = sync_category(MG_PREFIX . $hg . '_' . $mg, $mittelgruppe['name'], $mg, $hgId, $index, $visited);
+
+            usort($mittelgruppe['adressen'], function ($a, $b) {
+                return ((int) explode('/', $a['address'])[2]) <=> ((int) explode('/', $b['address'])[2]);
+            });
+
+            foreach ($mittelgruppe['adressen'] as $eintrag) {
+                $adresse = $eintrag['address'];
+                $dpt = $eigeneDpt[$adresse] ?? $eintrag['dpt'];
+                if (!isset($eigeneDpt[$adresse])) {
+                    $freie++;
+                }
+                $position = (int) explode('/', $adresse)[2];
+
+                switch (sync_gruppenadresse($adresse, $eintrag['name'], $dpt, $mgId, $position, $gatewayId, $index, $visited)) {
+                    case 'neu':
+                        $gaNeu++;
+                        break;
+                    case 'vorhanden':
+                        $gaVorhanden++;
+                        break;
+                    default:
+                        $gaUebersprungen++;
+                        $ohneDpt[] = $adresse . ' ' . $eintrag['name'];
+                }
+            }
+        }
+    }
+} elseif (isset($tree['gruppenadressen'])) {
+    // Kein ETS-Import vorhanden: der generierte Katalog des Exports.
     $knxId = sync_category(KNX_ROOT_IDENT, 'KNX', 1, $rootId, $index, $visited);
 
     foreach ($tree['gruppenadressen'] as $hauptgruppe) {
         $hgId = sync_category(
-            HG_PREFIX . $hauptgruppe['hauptgruppe'],
-            $hauptgruppe['name'],
-            $hauptgruppe['hauptgruppe'],
-            $knxId,
-            $index,
-            $visited
+            HG_PREFIX . $hauptgruppe['hauptgruppe'], $hauptgruppe['name'],
+            $hauptgruppe['hauptgruppe'], $knxId, $index, $visited
         );
 
         foreach ($hauptgruppe['mittelgruppen'] as $mittelgruppe) {
             $mgId = sync_category(
                 MG_PREFIX . $hauptgruppe['hauptgruppe'] . '_' . $mittelgruppe['mittelgruppe'],
-                $mittelgruppe['name'],
-                $mittelgruppe['mittelgruppe'],
-                $hgId,
-                $index,
-                $visited
+                $mittelgruppe['name'], $mittelgruppe['mittelgruppe'], $hgId, $index, $visited
             );
 
             foreach ($mittelgruppe['adressen'] as $adresse) {
-                switch (sync_gruppenadresse($adresse, $mgId, $gatewayId, $index, $visited)) {
+                $position = (int) explode('/', $adresse['group_address'])[2];
+                switch (sync_gruppenadresse($adresse['group_address'], $adresse['name'], $adresse['dpt_id'],
+                                            $mgId, $position, $gatewayId, $index, $visited)) {
                     case 'neu':
                         $gaNeu++;
                         break;
@@ -1046,8 +1164,8 @@ echo "  Modul:    $modulStatus\n";
 echo sprintf("  Struktur: %d Räume unter \"Visu %s\"\n", $raeume, $tree['project_name']);
 echo sprintf("  Kacheln:  %d neu, %d aktualisiert, %d unverändert\n",
     $kachelnNeu, $kachelnAktualisiert, $kachelnUnveraendert);
-echo sprintf("  KNX:      %d Adressen neu, %d vorhanden, %d ohne Symcon-Zuordnung\n",
-    $gaNeu, $gaVorhanden, $gaUebersprungen);
+echo sprintf("  KNX:      %d Adressen neu, %d vorhanden, %d ohne passendes Symcon-Modul; davon %d freie\n",
+    $gaNeu, $gaVorhanden, $gaUebersprungen, $freie);
 $masseText = [];
 foreach ($KACHEL_MASSE as $geraet => $m) {
     $masseText[] = sprintf('%s %dx%d/%dx%d', $geraet,
@@ -1058,6 +1176,16 @@ echo sprintf("  Messwerte:%d Variablen neu in der Aufzeichnung%s\n", $aufgezeich
 echo sprintf("  Visu:     %d Visualisierung(en) starten auf \"%s\"; Kacheln quer/hoch: %s\n",
     $visuAngepasst, IPS_GetName($visuId), implode(', ', $masseText));
 echo sprintf("  Verwaist: %d Objekte (%d verschoben)\n", count($verwaist), $verschoben);
+
+if (!empty($ohneDpt)) {
+    echo sprintf("\n%d Adressen ohne Datenpunkttyp in der ETS -- ohne Typ kein Gerät:\n", count($ohneDpt));
+    foreach (array_slice($ohneDpt, 0, 8) as $zeile) {
+        echo "  - $zeile\n";
+    }
+    if (count($ohneDpt) > 8) {
+        echo '  … und ' . (count($ohneDpt) - 8) . " weitere\n";
+    }
+}
 
 if (!empty($hinweise)) {
     echo "\nHinweise:\n";

@@ -30,9 +30,10 @@ Es installiert die Modulbibliothek selbst und baut danach alles auf:
 
 1. Modulbibliothek über die Modulverwaltung (falls noch nicht da)
 2. „Visu &lt;Projekt&gt;" mit Etagen und Räumen
-3. den ETS-Adresskatalog unter „REGOdeploy > KNX": Hauptgruppe und
-   Mittelgruppe wie in der ETS, jede Gruppenadresse als eigenes, exakt
-   typisiertes Gerät am KNX Gateway
+3. den kompletten Adresskatalog des importierten ETS-Projekts unter
+   „REGOdeploy > KNX": Haupt- und Mittelgruppen mit ihren ETS-Namen, jede
+   Gruppenadresse als eigenes, exakt typisiertes Gerät am KNX Gateway — auch
+   die Adressen, die keiner REGOdeploy-Funktion gehören („freie")
 4. in jeden Raum die passenden Kacheln, verdrahtet mit den Variablen genau
    dieser Geräte — jede Gruppenadresse existiert damit nur einmal in Symcon
 6. eine Infokachel auf der Startseite mit Sonnenauf- und -untergang aus
@@ -70,6 +71,11 @@ Nichts daran ist geraten:
 | Welche Aktion gehört zu welchem Bedienelement? | Funktionenkatalog von REGOdeploy (`/api/funktionenkatalog`) |
 | Welche Gruppenadresse steckt dahinter? | Projekt-Export (`/export/symcon-tree`) |
 | Welche Symcon-Variable ist das? | Das Katalog-Gerät der Adresse (Ident `regodeploy_ga_1_0_0`), dessen Variable `Value` |
+| Welcher Datenpunkttyp? | Bei Adressen einer Funktion der DPT der Funktion, sonst der aus der ETS-Datei |
+| Welches Symcon-Modul zu einem DPT? | Zur Laufzeit aus Symcons Modulliste (`KNX DPT <n>`), Dimension ist der Nebentyp |
+
+Adressen, denen die ETS keinen Datenpunkttyp gibt, bekommen kein Gerät — ohne
+Typ gäbe es nichts zu erzeugen. Das Skript zählt sie und nennt sie am Ende.
 
 | Funktionstyp | Kachel | Aktionen |
 |---|---|---|
