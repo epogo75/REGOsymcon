@@ -44,8 +44,6 @@ $KACHEL_MASSE = [
     'Tablet'  => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
 ];
 
-// Die Wetterstation zeigt ein ganzes Werteraster und braucht mehr Platz als
-// eine gewöhnliche Kachel -- deshalb eigene Maße, gleicher Aufbau.
 // Modbus-Energiezähler. Host, Port und Slave-ID stehen hier, bis REGOdeploy
 // einen eigenen Punkt dafür hat. "raum_id" ist die Raum-ID aus REGOdeploy;
 // ohne sie steht die Kachel direkt im Visu-Ordner.
@@ -64,10 +62,28 @@ $MODBUS_ZAEHLER = [
 // 0 Stunde, 1 Tag, 2 Woche, 3 Monat, 4 Jahr, 5 Jahrzehnt.
 $GRAPH_ZEITSPANNE = 0;
 
-$WETTER_MASSE = [
-    'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
-    'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
-    'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
+// Kacheln, die mehr als eine Bedienzeile zeigen, brauchen mehr Platz als eine
+// gewöhnliche -- je Modul eigene Maße, gleicher Aufbau wie oben. Was hier
+// nicht steht, bekommt $KACHEL_MASSE.
+$SONDER_MASSE = [
+    // Wetterstation: Werteraster plus Meldungen
+    '{6EFCE386-425F-4AF5-8440-B93CAA0B3C2E}' => [
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
+        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
+    ],
+    // Info: vier Felder nebeneinander
+    '{63561319-730C-4139-8F95-1DA3BD142C83}' => [
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
+        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+    ],
+    // Zähler: Leistung, Zählerstand, Heute und die übrigen Messwerte
+    '{A9DEE307-F3B2-48A2-9960-245799F8BBD9}' => [
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
+        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 6], 'hoch' => ['breite' => 6, 'hoehe' => 6]],
+        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
+    ],
 ];
 
 const REGOVISU_REPOSITORY = 'https://github.com/epogo75/SymconREGOvisu';
@@ -848,7 +864,7 @@ function wetterstation_readings($funktion, &$index)
  * Konfigurationen bleiben erhalten, nur die Maße der eigenen Kacheln werden
  * gesetzt.
  */
-function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterMasse, $zeitspanne)
+function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $sonderMasse, $zeitspanne)
 {
     $angepasst = 0;
 
@@ -881,7 +897,6 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterM
             // Der Name ist "~Desktop", "~Phone", "~Tablet" -- die Tilde faellt weg.
             $geraet = ltrim($eintrag['Name'], '~');
             $masse = $alleMasse[$geraet] ?? reset($alleMasse);
-            $wetter = $wetterMasse[$geraet] ?? reset($wetterMasse);
 
             $config = is_string($eintrag['Config']) ? json_decode($eintrag['Config'], true) : $eintrag['Config'];
             if (!is_array($config)) {
@@ -900,17 +915,16 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterM
                     'height' => max(1, (int) $fuerLage['hoehe']),
                     'width' => max(1, min((int) $fuerLage['breite'], $spalten)),
                 ];
-                $fuerWetter = $wetter[$schluessel];
-                $masseFuerWetter = [
-                    'height' => max(1, (int) $fuerWetter['hoehe']),
-                    'width' => max(1, min((int) $fuerWetter['breite'], $spalten)),
-                ];
-
                 $dim = (array) ($config[$lage]['individualDimensions'] ?? []);
                 foreach ($kachelIds as $id) {
                     $eigen = $masseFuerKachel;
-                    if (IPS_GetInstance($id)['ModuleInfo']['ModuleID'] === RGV_WETTER) {
-                        $eigen = $masseFuerWetter;
+                    $modul = IPS_GetInstance($id)['ModuleInfo']['ModuleID'];
+                    if (isset($sonderMasse[$modul][$geraet][$schluessel])) {
+                        $sonder = $sonderMasse[$modul][$geraet][$schluessel];
+                        $eigen = [
+                            'height' => max(1, (int) $sonder['hoehe']),
+                            'width' => max(1, min((int) $sonder['breite'], $spalten)),
+                        ];
                     }
                     $dim[(string) $id] = $eigen;
                 }
@@ -1588,7 +1602,7 @@ if ($infoId != 0) {
 $aufgezeichnet = aktiviere_aufzeichnung($messwerte);
 $nurLesen = setze_nur_lesen($messwerte);
 
-$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $WETTER_MASSE, $GRAPH_ZEITSPANNE);
+$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $SONDER_MASSE, $GRAPH_ZEITSPANNE);
 
 // Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
 $verwaist = [];
