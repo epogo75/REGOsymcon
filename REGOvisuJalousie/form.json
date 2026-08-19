@@ -1,0 +1,39 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "Title",
+            "caption": "Bezeichnung (leer = Name der Instanz)"
+        },
+        {
+            "type": "CheckBox",
+            "name": "ShowHeader",
+            "caption": "Kopfzeile mit Symbol und Namen anzeigen"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "MoveVariable",
+            "caption": "Fahren (Auf/Ab)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "StepVariable",
+            "caption": "Stopp / Schritt"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "PositionVariable",
+            "caption": "Position anfahren (in %)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "PositionFeedbackVariable",
+            "caption": "Position Rückmeldung (in %)"
+        },
+        {
+            "type": "CheckBox",
+            "name": "InvertMove",
+            "caption": "Fahrbefehl invertieren (Standard: AUF = false, AB = true)"
+        }
+    ]
+}

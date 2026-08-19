@@ -1,0 +1,12 @@
+{
+    "id": "{B8BE6C36-A85E-415C-93BD-C78908813739}",
+    "author": "Stephan Ruf",
+    "name": "REGOvisu",
+    "url": "https://github.com/",
+    "version": "1.0",
+    "build": 1,
+    "date": 0,
+    "compatibility": {
+        "version": "7.1"
+    }
+}

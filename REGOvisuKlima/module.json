@@ -1,0 +1,13 @@
+{
+    "id": "{FEB37553-F02A-4F1B-A669-15BCD71E0712}",
+    "name": "REGOvisuKlima",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOvisu Klima"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGVKL"
+}

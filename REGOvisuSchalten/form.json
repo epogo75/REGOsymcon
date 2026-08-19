@@ -1,0 +1,24 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "Title",
+            "caption": "Bezeichnung (leer = Name der Instanz)"
+        },
+        {
+            "type": "CheckBox",
+            "name": "ShowHeader",
+            "caption": "Kopfzeile mit Symbol und Namen anzeigen"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "StatusVariable",
+            "caption": "Status (Rückmeldung)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "SwitchVariable",
+            "caption": "Schalten (leer = Status-Variable)"
+        }
+    ]
+}
