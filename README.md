@@ -44,6 +44,47 @@ Geschrieben wird immer über die Aktion der Zielvariable — bei KNX-Variablen g
 also ein echtes Telegramm auf den Bus. Nur wenn eine Variable gar keine Aktion
 hat, setzt das Modul den Wert direkt, damit auch reine Merker funktionieren.
 
+## Kacheln automatisch anlegen (REGOdeploy)
+
+`tools/regovisu_deploy.php` legt zu jeder Funktion eines REGOdeploy-Projekts die
+passende Kachel an und verdrahtet sie mit den Variablen der KNX-Sammelinstanz,
+die der REGOdeploy-Symcon-Organizer erzeugt hat.
+
+Reihenfolge auf einem frischen Symcon:
+
+1. Modul installieren (Modules → **+** → Repository-URL)
+2. **REGOdeploy-Symcon-Organizer** laufen lassen — Etagen, Räume, KNX-Geräte
+3. **REGOvisu-Deploy** laufen lassen — Kacheln je Funktion
+
+Oben im Skript stehen REGOdeploy-URL, Zugang und Projekt-ID. Danach als Skript
+in Symcon anlegen und per Rechtsklick ausführen. Erneutes Ausführen ist sicher:
+Umbenennungen, Umzüge und geänderte Adressen werden nachgezogen, Kacheln zu
+gelöschten Funktionen landen unter „REGOdeploy – Verwaist" statt gelöscht zu
+werden.
+
+Die Zuordnung ist nicht geraten, sondern dreifach abgeleitet: welche Aktion zu
+welchem Bedienelement gehört, steht im Funktionenkatalog von REGOdeploy
+(`/api/funktionenkatalog`); welche Gruppenadresse dahinter liegt, kommt aus dem
+Projekt-Export; und der Variablen-Ident der Sammelinstanz ist die
+Gruppenadresse selbst (`GA_1_0_0_Value`). Rückmeldeadressen faltet der
+Organizer in ihre Primäradresse ein, deshalb zeigen Schreib- und
+Rückmelde-Eigenschaft bewusst auf dieselbe Variable.
+
+| Funktionstyp | Kachel | Aktionen |
+|---|---|---|
+| `schalten` | Schalten | Schalten, Status |
+| `dimmen` | Dimmen | Schalten, Status, Dimmen absolut, Zustandswert |
+| `dimmen` / `rgb` | Dimmen | Allgemein Schalten / Status / Helligkeit (+ Rückmeldung) |
+| `jalousie` | Jalousie | Move, Step, Move to Position, Position Feedback |
+| `temperatur` | Klima | Ist-Temperatur, Soll-Temperatur |
+| `klima` | Klima | Ist-Temperatur, Soll-Temperatur (+ Rückmeldung) |
+| `szene` | Szene | Szene |
+
+Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
+mit einem Typ ohne Bedienelement (`sensor`, `wetterstation`, `taster`,
+`url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung
+aufgelistet.
+
 ## Design
 
 Farben, Radien, Abstände und Zustandslogik stammen 1:1 aus REGObaseX1:
