@@ -40,6 +40,9 @@ Es installiert die Modulbibliothek selbst und baut danach alles auf:
    Symcons Location-Instanz und der Außentemperatur der Wetterstation
 7. Aufzeichnung und Diagramm für alle Messwerte (Sensoren, Wetterstation und
    die Ist-Temperatur der Klimakacheln) über die Archive-Instanz
+8. Nur-Lesen für genau diese Messwerte: das KNX-Gerät verliert sein
+   Schreibrecht, damit die Visualisierung keine Bedienung anbietet, wo ein
+   Sensor nichts entgegennimmt
 
 Etagen, Räume und Kacheln stehen in der Reihenfolge, in der REGOdeploy sie
 liefert — nicht nach `sort_order`, das im Projekt fast überall auf 0 steht.

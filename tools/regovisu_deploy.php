@@ -569,6 +569,38 @@ function variable_for_aktion($funktion, $aktion, &$index, $teil = 'wert')
 }
 
 /**
+ * Nimmt den Messwert-Geräten das Schreibrecht.
+ *
+ * Ein KNX-Gerät mit "CapabilityWrite" hängt seiner Variable eine Aktion an --
+ * die Visualisierung bietet dann eine Bedienung an, obwohl ein Sensor nichts
+ * entgegennimmt. Ohne Schreibrecht bleibt die Variable eine reine Anzeige;
+ * empfangen wird weiterhin.
+ */
+function setze_nur_lesen($variableIds)
+{
+    $geaendert = 0;
+
+    foreach (array_unique(array_filter($variableIds)) as $variableID) {
+        if (!IPS_VariableExists($variableID)) {
+            continue;
+        }
+        $geraet = IPS_GetObject($variableID)['ParentID'];
+        if (!IPS_InstanceExists($geraet)) {
+            continue;
+        }
+        $config = json_decode(IPS_GetConfiguration($geraet), true);
+        if (!array_key_exists('CapabilityWrite', $config) || ($config['CapabilityWrite'] === false)) {
+            continue;
+        }
+        IPS_SetProperty($geraet, 'CapabilityWrite', false);
+        IPS_ApplyChanges($geraet);
+        $geaendert++;
+    }
+
+    return $geaendert;
+}
+
+/**
  * Schaltet Aufzeichnung und Diagramm für Messwerte ein.
  */
 function aktiviere_aufzeichnung($variableIds)
@@ -1223,6 +1255,7 @@ if ($infoId != 0) {
 }
 
 $aufgezeichnet = aktiviere_aufzeichnung($messwerte);
+$nurLesen = setze_nur_lesen($messwerte);
 
 $visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $WETTER_MASSE);
 
@@ -1272,7 +1305,8 @@ foreach ($KACHEL_MASSE as $geraet => $m) {
     $masseText[] = sprintf('%s %dx%d/%dx%d', $geraet,
         $m['quer']['breite'], $m['quer']['hoehe'], $m['hoch']['breite'], $m['hoch']['hoehe']);
 }
-echo sprintf("  Messwerte:%d Variablen neu in der Aufzeichnung%s\n", $aufgezeichnet,
+echo sprintf("  Messwerte:%d Variablen neu in der Aufzeichnung, %d auf nur lesen gestellt%s\n",
+    $aufgezeichnet, $nurLesen,
     ($infoId != 0) ? ', Infokachel auf der Startseite' : '');
 echo sprintf("  Visu:     %d Visualisierung(en) starten auf \"%s\"; Kacheln quer/hoch: %s\n",
     $visuAngepasst, IPS_GetName($visuId), implode(', ', $masseText));
