@@ -5,14 +5,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RegoVisuTile.php';
 
 /**
- * Wetterstation -- viele Werte auf einmal: oben die Messwerte als Raster mit
- * Beschriftung, darunter die Ja/Nein-Meldungen als Pillen.
+ * Zähler -- die Messwerte eines Energiezählers im Werteraster.
  *
- * Das ist die Darstellung der Raumzusammenfassung aus REGObaseX1. Ob ein
- * Eintrag als Zahl oder als Pille erscheint, entscheidet der Typ der Variable,
- * nicht eine Namensliste.
+ * Dieselbe Darstellung wie die Wetterstation: große Zahl mit kleiner Einheit
+ * und Beschriftung darunter. Bedient wird nichts, ein Zähler nimmt nichts
+ * entgegen.
  */
-class REGOvisuWetterstation extends IPSModule
+class REGOvisuZaehler extends IPSModule
 {
     use RegoVisuTile;
 
@@ -47,7 +46,7 @@ class REGOvisuWetterstation extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        return $this->RegoTile('wetterstation', $this->RegoRasterHtml(), $this->RegoRasterScript(),
+        return $this->RegoTile('zaehler', $this->RegoRasterHtml(), $this->RegoRasterScript(),
             ['Raster' => $this->RegoRasterState($this->Readings())]);
     }
 

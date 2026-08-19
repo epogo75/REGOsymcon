@@ -46,6 +46,20 @@ $KACHEL_MASSE = [
 
 // Die Wetterstation zeigt ein ganzes Werteraster und braucht mehr Platz als
 // eine gewöhnliche Kachel -- deshalb eigene Maße, gleicher Aufbau.
+// Modbus-Energiezähler. Host, Port und Slave-ID stehen hier, bis REGOdeploy
+// einen eigenen Punkt dafür hat. "raum_id" ist die Raum-ID aus REGOdeploy;
+// ohne sie steht die Kachel direkt im Visu-Ordner.
+$MODBUS_ZAEHLER = [
+    [
+        'name'    => 'Energiezähler',
+        'host'    => '192.168.1.254',
+        'port'    => 502,
+        'slave'   => 33,
+        'poller'  => 10000,
+        'raum_id' => null,
+    ],
+];
+
 // Zeitspanne der Diagramme in der Visualisierung:
 // 0 Stunde, 1 Tag, 2 Woche, 3 Monat, 4 Jahr, 5 Jahrzehnt.
 $GRAPH_ZEITSPANNE = 0;
@@ -69,6 +83,80 @@ const RGV_WETTER   = '{6EFCE386-425F-4AF5-8440-B93CAA0B3C2E}';
 const RGV_INFO     = '{63561319-730C-4139-8F95-1DA3BD142C83}';
 const RGV_TASTER   = '{2562CE14-21C3-4609-B04E-A9A69C51C684}';
 const RGV_URL      = '{E72DF487-94FC-4942-8473-1FBEAF87564B}';
+const RGV_ZAEHLER  = '{A9DEE307-F3B2-48A2-9960-245799F8BBD9}';
+
+const CLIENT_SOCKET_GUID  = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
+const MODBUS_GATEWAY_GUID = '{A5F663AB-C400-4FE5-B207-4D67CC030564}';
+const MODBUS_ADDRESS_GUID = '{CB197E50-273D-4535-8C91-BB35273E3CA5}';
+
+// Register-Map des Finder-7M-Energiezählers, Block "MEASUREMENTS (IEEE 754)".
+// Die Offsets sind Float-Indizes innerhalb ihres Blocks, die Registeradresse
+// ist also Blockstart + Offset * 2. Übernommen aus REGObase
+// (modbus/registers.py), das sie seinerseits aus dem Datenblatt transkribiert.
+//
+// "aktiv" entscheidet, was Symcon tatsächlich pollt -- Nachrüsten ist ein
+// true statt false, die ganze Map steht schon hier.
+const FINDER_BLOCK_A = 2490;
+const FINDER_BLOCK_B = 2530;
+const FINDER_BLOCK_C = 2570;
+const FINDER_BLOCK_D = 2638;
+
+const FINDER_MESSGROESSEN = [
+    // Schlüssel => [Block, Offset, Beschriftung, Einheit, Nachkommastellen, Profil, aktiv, Faktor]
+    // Der Faktor ist Symcons eigene Umrechnung in der Adress-Instanz
+    // (0 = keine); die Energiezähler liefern Wh, angezeigt wird kWh.
+    'wirkleistung'        => [FINDER_BLOCK_A,  0, 'Wirkleistung',            'W',    0, '~Watt',   true],
+    'blindleistung'       => [FINDER_BLOCK_A,  1, 'Blindleistung',           'var',  0, '',        false],
+    'scheinleistung'      => [FINDER_BLOCK_A,  2, 'Scheinleistung',          'VA',   0, '',        false],
+    'leistungsfaktor'     => [FINDER_BLOCK_A,  3, 'Leistungsfaktor',         '',     2, '',        true],
+    'frequenz'            => [FINDER_BLOCK_A,  4, 'Frequenz',                'Hz',   2, '',        true],
+    'spannung_l1'         => [FINDER_BLOCK_A,  5, 'Spannung L1',             'V',    1, '~Volt',   true],
+    'spannung_l2'         => [FINDER_BLOCK_A,  6, 'Spannung L2',             'V',    1, '~Volt',   true],
+    'spannung_l3'         => [FINDER_BLOCK_A,  7, 'Spannung L3',             'V',    1, '~Volt',   true],
+    'spannung_mittel_ln'  => [FINDER_BLOCK_A,  8, 'Spannung Mittel L-N',     'V',    1, '~Volt',   false],
+    'spannung_u12'        => [FINDER_BLOCK_A,  9, 'Spannung L1-L2',          'V',    1, '~Volt',   false],
+    'spannung_u23'        => [FINDER_BLOCK_A, 10, 'Spannung L2-L3',          'V',    1, '~Volt',   false],
+    'spannung_u31'        => [FINDER_BLOCK_A, 11, 'Spannung L3-L1',          'V',    1, '~Volt',   false],
+    'spannung_mittel_ll'  => [FINDER_BLOCK_A, 12, 'Spannung Mittel L-L',     'V',    1, '~Volt',   false],
+    'strom_l1'            => [FINDER_BLOCK_A, 13, 'Strom L1',                'A',    2, '~Ampere', true],
+    'strom_l2'            => [FINDER_BLOCK_A, 14, 'Strom L2',                'A',    2, '~Ampere', true],
+    'strom_l3'            => [FINDER_BLOCK_A, 15, 'Strom L3',                'A',    2, '~Ampere', true],
+    'strom_summe'         => [FINDER_BLOCK_A, 16, 'Strom Summe',             'A',    2, '~Ampere', false],
+    'strom_mittel'        => [FINDER_BLOCK_A, 19, 'Strom Mittel',            'A',    2, '~Ampere', false],
+
+    'wirkleistung_l1'     => [FINDER_BLOCK_B,  0, 'Wirkleistung L1',         'W',    0, '~Watt',   false],
+    'wirkleistung_l2'     => [FINDER_BLOCK_B,  1, 'Wirkleistung L2',         'W',    0, '~Watt',   false],
+    'wirkleistung_l3'     => [FINDER_BLOCK_B,  2, 'Wirkleistung L3',         'W',    0, '~Watt',   false],
+    'blindleistung_l1'    => [FINDER_BLOCK_B,  4, 'Blindleistung L1',        'var',  0, '',        false],
+    'blindleistung_l2'    => [FINDER_BLOCK_B,  5, 'Blindleistung L2',        'var',  0, '',        false],
+    'blindleistung_l3'    => [FINDER_BLOCK_B,  6, 'Blindleistung L3',        'var',  0, '',        false],
+    'scheinleistung_l1'   => [FINDER_BLOCK_B,  8, 'Scheinleistung L1',       'VA',   0, '',        false],
+    'scheinleistung_l2'   => [FINDER_BLOCK_B,  9, 'Scheinleistung L2',       'VA',   0, '',        false],
+    'scheinleistung_l3'   => [FINDER_BLOCK_B, 10, 'Scheinleistung L3',       'VA',   0, '',        false],
+    'leistungsfaktor_l1'  => [FINDER_BLOCK_B, 12, 'Leistungsfaktor L1',      '',     2, '',        false],
+    'leistungsfaktor_l2'  => [FINDER_BLOCK_B, 13, 'Leistungsfaktor L2',      '',     2, '',        false],
+    'leistungsfaktor_l3'  => [FINDER_BLOCK_B, 14, 'Leistungsfaktor L3',      '',     2, '',        false],
+
+    'winkel_i1u1'         => [FINDER_BLOCK_C,  0, 'Winkel I1-U1',            '°',    1, '',        false],
+    'winkel_i2u2'         => [FINDER_BLOCK_C,  1, 'Winkel I2-U2',            '°',    1, '',        false],
+    'winkel_i3u3'         => [FINDER_BLOCK_C,  2, 'Winkel I3-U3',            '°',    1, '',        false],
+    'winkel_leistung'     => [FINDER_BLOCK_C,  3, 'Leistungswinkel',         '°',    1, '',        false],
+    'winkel_u12'          => [FINDER_BLOCK_C,  4, 'Winkel U12',              '°',    1, '',        false],
+    'winkel_u23'          => [FINDER_BLOCK_C,  5, 'Winkel U23',              '°',    1, '',        false],
+    'winkel_u31'          => [FINDER_BLOCK_C,  6, 'Winkel U31',              '°',    1, '',        false],
+    'thd_i1'              => [FINDER_BLOCK_C,  9, 'Klirrfaktor I1',          '%',    1, '',        false],
+    'thd_i2'              => [FINDER_BLOCK_C, 10, 'Klirrfaktor I2',          '%',    1, '',        false],
+    'thd_i3'              => [FINDER_BLOCK_C, 11, 'Klirrfaktor I3',          '%',    1, '',        false],
+    'thd_u1'              => [FINDER_BLOCK_C, 12, 'Klirrfaktor U1',          '%',    1, '',        false],
+    'thd_u2'              => [FINDER_BLOCK_C, 13, 'Klirrfaktor U2',          '%',    1, '',        false],
+    'thd_u3'              => [FINDER_BLOCK_C, 14, 'Klirrfaktor U3',          '%',    1, '',        false],
+
+    'energie_bezug'       => [FINDER_BLOCK_D,  0, 'Wirkenergie Bezug',       'kWh',  1, '',        true,  0.001],
+    'blindenergie_bezug'  => [FINDER_BLOCK_D,  1, 'Blindenergie Bezug',      'kvarh',1, '',        false, 0.001],
+    'energie_einspeisung' => [FINDER_BLOCK_D,  2, 'Wirkenergie Einspeisung', 'kWh',  1, '',        false, 0.001],
+    'blindenergie_eins'   => [FINDER_BLOCK_D,  3, 'Blindenergie Einspeisung','kvarh',1, '',        false, 0.001],
+    'temperatur_intern'   => [FINDER_BLOCK_D, 10, 'Temperatur im Gerät',     '°C',   1, '~Temperature', false],
+];
 
 // Wetterstation: Reihenfolge, Nachkommastellen und ob "wahr" ein Alarm ist.
 // Die Aktionsnamen sind die des REGOdeploy-Funktionenkatalogs; was hier nicht
@@ -125,6 +213,8 @@ const HG_PREFIX      = 'regodeploy_hg_';
 const MG_PREFIX      = 'regodeploy_mg_';
 const GA_PREFIX      = 'regodeploy_ga_';
 const KACHEL_PREFIX  = 'regovisu_kachel_';
+const MODBUS_PREFIX  = 'regovisu_modbus_';
+const MODBUS_ROOT_IDENT = 'regovisu_modbus_root';
 const LINK_PREFIX    = 'regovisu_link_';
 
 // Beschriftung der Verknüpfungen, die unter jeder Kachel liegen -- sie
@@ -153,10 +243,11 @@ const LINK_BESCHRIFTUNG = [
 
 const VERWALTETE_PREFIXE = [
     ETAGE_PREFIX, RAUM_PREFIX, GERAET_PREFIX, HG_PREFIX, MG_PREFIX, GA_PREFIX, KACHEL_PREFIX,
+    MODBUS_PREFIX,
 ];
 const VERWALTETE_IDENTS = [
     VISU_ROOT_IDENT, DEPLOY_ROOT_IDENT, ORPHAN_ROOT_IDENT, KNX_ROOT_IDENT, KNX_GERAETE_IDENT,
-    INFO_IDENT,
+    INFO_IDENT, MODBUS_ROOT_IDENT,
 ];
 
 // Funktionstyp (optional "|unterart") -> Kachel-Modul und Eigenschaften.
@@ -919,6 +1010,168 @@ function sync_links($kachelId, array $eintraege)
     return count($gewuenscht);
 }
 
+/**
+ * Legt einen Modbus-Energiezähler an: Client Socket, ModBus Gateway und je
+ * aktiver Messgröße eine Adress-Instanz.
+ *
+ * Der Zähler spricht Modbus RTU über TCP (RTU-Rahmen mit CRC über eine
+ * TCP-Verbindung, nicht Modbus TCP) und liefert die Messwerte als
+ * Big-Endian-Floats über Funktionscode 4 (Read Input Registers) -- so liest
+ * REGObase ihn auch. Die Registeradresse ist Blockstart + Offset * 2, weil
+ * die Offsets Float-Indizes sind.
+ */
+function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$visited)
+{
+    $schluessel = preg_replace('/[^a-z0-9]+/', '_', strtolower(
+        iconv('UTF-8', 'ASCII//TRANSLIT', $zaehler['name'])
+    ));
+
+    // Verbindung
+    $socketIdent = MODBUS_PREFIX . $schluessel . '_socket';
+    $visited[$socketIdent] = true;
+    if (isset($index[$socketIdent])) {
+        $socketId = $index[$socketIdent]['id'];
+        if ($index[$socketIdent]['parent'] !== $technikId) {
+            IPS_SetParent($socketId, $technikId);
+        }
+    } else {
+        $socketId = IPS_CreateInstance(CLIENT_SOCKET_GUID);
+        IPS_SetIdent($socketId, $socketIdent);
+        IPS_SetParent($socketId, $technikId);
+        $index[$socketIdent] = ['id' => $socketId, 'parent' => $technikId];
+    }
+    $vorher = json_decode(IPS_GetConfiguration($socketId), true);
+    if (($vorher['Host'] !== $zaehler['host']) || ($vorher['Port'] !== $zaehler['port']) || !$vorher['Open']) {
+        IPS_SetProperty($socketId, 'Host', $zaehler['host']);
+        IPS_SetProperty($socketId, 'Port', $zaehler['port']);
+        IPS_SetProperty($socketId, 'Open', true);
+        IPS_ApplyChanges($socketId);
+    }
+    IPS_SetName($socketId, $zaehler['name'] . ' Verbindung');
+
+    // Gateway
+    $gatewayIdent = MODBUS_PREFIX . $schluessel . '_gateway';
+    $visited[$gatewayIdent] = true;
+    if (isset($index[$gatewayIdent])) {
+        $gatewayId = $index[$gatewayIdent]['id'];
+        if ($index[$gatewayIdent]['parent'] !== $technikId) {
+            IPS_SetParent($gatewayId, $technikId);
+        }
+    } else {
+        $gatewayId = IPS_CreateInstance(MODBUS_GATEWAY_GUID);
+        IPS_SetIdent($gatewayId, $gatewayIdent);
+        IPS_SetParent($gatewayId, $technikId);
+        $index[$gatewayIdent] = ['id' => $gatewayId, 'parent' => $technikId];
+    }
+    $vorher = json_decode(IPS_GetConfiguration($gatewayId), true);
+    if (($vorher['GatewayMode'] != 2) || ($vorher['DeviceID'] != $zaehler['slave']) || $vorher['SwapWords']) {
+        IPS_SetProperty($gatewayId, 'GatewayMode', 2);
+        IPS_SetProperty($gatewayId, 'DeviceID', $zaehler['slave']);
+        IPS_SetProperty($gatewayId, 'SwapWords', false);
+        IPS_ApplyChanges($gatewayId);
+    }
+    if (IPS_GetInstance($gatewayId)['ConnectionID'] !== $socketId) {
+        IPS_ConnectInstance($gatewayId, $socketId);
+    }
+    IPS_SetName($gatewayId, $zaehler['name'] . ' Modbus');
+
+    // Messgrößen
+    $zeilen = [];
+    $variablen = [];
+    $position = 0;
+
+    foreach (FINDER_MESSGROESSEN as $key => $messgroesse) {
+        list($block, $offset, $beschriftung, $einheit, $stellen, $profil, $aktiv) = $messgroesse;
+        $faktor = $messgroesse[7] ?? 0;
+        $ident = MODBUS_PREFIX . $schluessel . '_' . $key;
+        if (!$aktiv) {
+            continue;
+        }
+        $visited[$ident] = true;
+
+        if (isset($index[$ident])) {
+            $adresseId = $index[$ident]['id'];
+            if ($index[$ident]['parent'] !== $technikId) {
+                IPS_SetParent($adresseId, $technikId);
+            }
+        } else {
+            $adresseId = IPS_CreateInstance(MODBUS_ADDRESS_GUID);
+            IPS_SetIdent($adresseId, $ident);
+            IPS_SetParent($adresseId, $technikId);
+            $index[$ident] = ['id' => $adresseId, 'parent' => $technikId];
+        }
+
+        $soll = [
+            'ReadFunctionCode' => 4,          // Read Input Registers
+            'ReadAddress' => $block + ($offset * 2),
+            'DataType' => 7,                  // FLOAT32
+            'ByteOrder' => 0,                 // Big-Endian
+            'WriteFunctionCode' => 0,         // nur lesen
+            'Factor' => $faktor,
+            'Poller' => $zaehler['poller'],
+        ];
+        $vorher = json_decode(IPS_GetConfiguration($adresseId), true);
+        $aendern = false;
+        foreach ($soll as $eigenschaft => $wert) {
+            if (($vorher[$eigenschaft] ?? null) != $wert) {
+                IPS_SetProperty($adresseId, $eigenschaft, $wert);
+                $aendern = true;
+            }
+        }
+        if ($aendern) {
+            IPS_ApplyChanges($adresseId);
+        }
+        if (IPS_GetInstance($adresseId)['ConnectionID'] !== $gatewayId) {
+            IPS_ConnectInstance($adresseId, $gatewayId);
+        }
+        IPS_SetName($adresseId, $beschriftung);
+        IPS_SetPosition($adresseId, $position++);
+
+        // Die Variable des Moduls heißt "Value"; Profil nur setzen, wenn eins
+        // hinterlegt ist -- sonst zeigt die Kachel die Einheit selbst.
+        $varId = @IPS_GetObjectIDByIdent('Value', $adresseId);
+        if ($varId !== false) {
+            if (($profil !== '') && (IPS_GetVariable($varId)['VariableCustomProfile'] !== $profil)
+                && IPS_VariableProfileExists($profil)) {
+                IPS_SetVariableCustomProfile($varId, $profil);
+            }
+            IPS_SetName($varId, $beschriftung);
+            $zeilen[] = [
+                'VariableID' => $varId,
+                'Label' => $beschriftung,
+                'Unit' => $einheit,
+                'Digits' => $stellen,
+            ];
+            $variablen[$beschriftung] = $varId;
+        }
+    }
+
+    // Kachel
+    $kachelIdent = MODBUS_PREFIX . $schluessel . '_kachel';
+    $visited[$kachelIdent] = true;
+    if (isset($index[$kachelIdent])) {
+        $kachelId = $index[$kachelIdent]['id'];
+        if ($index[$kachelIdent]['parent'] !== $kachelParentId) {
+            IPS_SetParent($kachelId, $kachelParentId);
+        }
+    } else {
+        $kachelId = IPS_CreateInstance(RGV_ZAEHLER);
+        IPS_SetIdent($kachelId, $kachelIdent);
+        IPS_SetParent($kachelId, $kachelParentId);
+        $index[$kachelIdent] = ['id' => $kachelId, 'parent' => $kachelParentId];
+    }
+    $desired = json_encode($zeilen);
+    if ((json_decode(IPS_GetConfiguration($kachelId), true)['Readings'] ?? '') !== $desired) {
+        IPS_SetProperty($kachelId, 'Readings', $desired);
+        IPS_ApplyChanges($kachelId);
+    }
+    IPS_SetName($kachelId, $zaehler['name']);
+
+    sync_links($kachelId, $variablen);
+
+    return ['kachel' => $kachelId, 'variablen' => array_values($variablen)];
+}
+
 // ---- Ablauf ----
 
 $modulStatus = ensure_module_installed();
@@ -1290,6 +1543,22 @@ foreach ($tree['etagen'] as $etagePosition => $etage) {
     }
 }
 
+// Modbus-Zähler: Technik unter "REGOdeploy > Modbus", Kachel im Raum.
+$zaehlerKacheln = 0;
+if (!empty($MODBUS_ZAEHLER)) {
+    $modbusId = sync_category(MODBUS_ROOT_IDENT, 'Modbus', 2, $rootId, $index, $visited);
+
+    foreach ($MODBUS_ZAEHLER as $zaehler) {
+        $raumIdent = RAUM_PREFIX . (int) ($zaehler['raum_id'] ?? 0);
+        $ziel = isset($index[$raumIdent]) ? $index[$raumIdent]['id'] : $visuId;
+
+        $ergebnis = sync_modbus_zaehler($zaehler, $modbusId, $ziel, $index, $visited);
+        $kachelIds[] = $ergebnis['kachel'];
+        $messwerte = array_merge($messwerte, $ergebnis['variablen']);
+        $zaehlerKacheln++;
+    }
+}
+
 $infoId = sync_infokachel($visuId, $aussentemperatur, $index, $visited);
 if ($infoId != 0) {
     $kachelIds[] = $infoId;
@@ -1345,6 +1614,10 @@ $masseText = [];
 foreach ($KACHEL_MASSE as $geraet => $m) {
     $masseText[] = sprintf('%s %dx%d/%dx%d', $geraet,
         $m['quer']['breite'], $m['quer']['hoehe'], $m['hoch']['breite'], $m['hoch']['hoehe']);
+}
+if ($zaehlerKacheln > 0) {
+    echo sprintf("  Modbus:   %d Zähler mit %d Messgrößen\n", $zaehlerKacheln,
+        count(array_filter(FINDER_MESSGROESSEN, fn($m) => $m[6])));
 }
 echo sprintf("  Messwerte:%d Variablen neu in der Aufzeichnung, %d auf nur lesen gestellt%s\n",
     $aufgezeichnet, $nurLesen,

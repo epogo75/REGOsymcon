@@ -35,6 +35,7 @@ Browser öffnen, die Regler und Knöpfe reagieren.
 | REGOvisu Info | Sonnenaufgang, Sonnenuntergang und Außentemperatur — steht auf der Startseite |
 | REGOvisu Taster | Ein Knopf, der auslöst — ohne Zustandsanzeige, weil ein Taster keinen hat |
 | REGOvisu URL-Aufruf | Ein Knopf, der eine Seite in einem neuen Tab öffnet |
+| REGOvisu Zähler | Werteraster eines Energiezählers — Leistung, Spannungen, Ströme, Energie |
 
 ## Installation
 
@@ -77,6 +78,26 @@ erledigen damit den kompletten Aufbau.
 
 Ohne REGOdeploy trägt man die fünf Werte von Hand ein; die Gateway-Instanz
 findet das Skript notfalls selbst.
+
+## Modbus-Energiezähler
+
+Das Deploy-Skript legt einen Finder-7M-Zähler komplett an: Client Socket,
+ModBus Gateway und je Messgröße eine Adress-Instanz, dazu die Kachel, die
+Verknüpfungen und die Aufzeichnung. Konfiguriert wird er oben im Skript
+(`$MODBUS_ZAEHLER`) mit Host, Port, Slave-ID, Poll-Intervall und optional der
+Raum-ID aus REGOdeploy.
+
+Der Zähler spricht **Modbus RTU über TCP** — RTU-Rahmen mit CRC über eine
+TCP-Verbindung, nicht Modbus TCP. In Symcon heißt das `GatewayMode = 2`. Die
+Messwerte kommen als Big-Endian-Floats über Funktionscode 4 (Read Input
+Registers); die Registeradresse ist Blockstart + Offset × 2, weil die Offsets
+der Register-Map Float-Indizes sind.
+
+Die vollständige Register-Map steht als `FINDER_MESSGROESSEN` im Skript
+(Blöcke A–D, rund 50 Messgrößen, transkribiert aus REGObase). Aktiv sind
+zunächst zehn: Wirkleistung, Leistungsfaktor, Frequenz, drei Spannungen, drei
+Ströme und die Wirkenergie. Nachrüsten ist ein `true` statt `false` in der
+Zeile — die Energiezähler rechnet Symcon über den Faktor gleich in kWh um.
 
 ## Zuordnung
 

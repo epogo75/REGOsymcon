@@ -131,6 +131,124 @@ trait RegoVisuTile
     }
 
     /**
+     * Werteraster: Zahlen mit Beschriftung, darunter Ja/Nein-Werte als Pillen.
+     * Genutzt von Wetterstation und Zaehler -- beide zeigen eine Liste von
+     * Messwerten, die sich nur im Inhalt unterscheidet.
+     */
+    protected function RegoRasterHtml(): string
+    {
+        return '<div class="werte" id="rego-werte"></div>'
+            . '<div class="badges" id="rego-badges"></div>';
+    }
+
+    protected function RegoRasterScript(): string
+    {
+        return <<<'JS'
+function regoRenderRaster(daten) {
+    window.regoState.Raster = daten;
+
+    var werte = document.getElementById('rego-werte');
+    werte.innerHTML = '';
+    (daten.values || []).forEach(function (eintrag) {
+        var block = document.createElement('span');
+        block.className = 'wert';
+
+        var zahl = document.createElement('span');
+        zahl.className = 'wert-zahl';
+        zahl.textContent = eintrag.text;
+        if (eintrag.unit) {
+            var einheit = document.createElement('span');
+            einheit.className = 'wert-einheit';
+            einheit.textContent = eintrag.unit;
+            zahl.appendChild(einheit);
+        }
+
+        var label = document.createElement('span');
+        label.className = 'wert-label';
+        label.textContent = eintrag.label;
+
+        block.appendChild(zahl);
+        block.appendChild(label);
+        werte.appendChild(block);
+    });
+
+    var badges = document.getElementById('rego-badges');
+    badges.innerHTML = '';
+    (daten.badges || []).forEach(function (badge) {
+        var span = document.createElement('span');
+        span.className = 'badge' + (badge.alarm ? ' badge-danger' : '');
+        span.textContent = badge.text;
+        badges.appendChild(span);
+    });
+}
+window.regoHandlers['Raster'] = regoRenderRaster;
+regoRenderRaster(window.regoState.Raster);
+JS;
+    }
+
+    /**
+     * Baut aus den Listenzeilen (VariableID, Label, Digits, Alarm) die
+     * Anzeige: Zahlen ins Raster, Ja/Nein-Werte in die Pillen. Was wohin
+     * gehoert, entscheidet der Typ der Variable, nicht eine Namensliste.
+     */
+    protected function RegoRasterState(array $zeilen): array
+    {
+        $values = [];
+        $badges = [];
+
+        foreach ($zeilen as $zeile) {
+            $variableID = (int) ($zeile['VariableID'] ?? 0);
+            if (($variableID == 0) || !IPS_VariableExists($variableID)) {
+                continue;
+            }
+
+            $variable = IPS_GetVariable($variableID);
+            $label = trim((string) ($zeile['Label'] ?? ''));
+            if ($label === '') {
+                $label = IPS_GetName($variableID);
+            }
+            $wert = GetValue($variableID);
+
+            if ($variable['VariableType'] == 0) {
+                $badges[] = [
+                    'text' => $label . ': ' . ($wert ? 'Ja' : 'Nein'),
+                    'alarm' => ((bool) $wert) && ((bool) ($zeile['Alarm'] ?? false)),
+                ];
+                continue;
+            }
+
+            $profil = $variable['VariableCustomProfile'];
+            if ($profil === '') {
+                $profil = $variable['VariableProfile'];
+            }
+            $info = ($profil !== '') && IPS_VariableProfileExists($profil) ? IPS_GetVariableProfile($profil) : null;
+
+            if ($variable['VariableType'] == 3) {
+                $values[] = ['text' => (string) $wert, 'unit' => '', 'label' => $label];
+                continue;
+            }
+
+            $stellen = (int) ($zeile['Digits'] ?? -1);
+            if ($stellen < 0) {
+                $stellen = ($info !== null) ? (int) $info['Digits'] : (($variable['VariableType'] == 1) ? 0 : 1);
+            }
+
+            $einheit = trim((string) ($zeile['Unit'] ?? ''));
+            if ($einheit === '') {
+                $einheit = ($info !== null) ? trim((string) $info['Suffix']) : '';
+            }
+
+            $values[] = [
+                'text' => number_format((float) $wert, max(0, $stellen), ',', ''),
+                'unit' => $einheit,
+                'label' => $label,
+            ];
+        }
+
+        return ['values' => $values, 'badges' => $badges];
+    }
+
+    /**
      * Eine Reihe gleich breiter Knoepfe.
      */
     protected function RegoButtons(string $buttons): string
@@ -148,6 +266,7 @@ trait RegoVisuTile
             'dimmen'   => '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
             'jalousie' => '<path d="M3 3h18"/><path d="M20 7H8"/><path d="M20 11H8"/><path d="M10 19h10"/><path d="M8 15h12"/><path d="M4 3v14a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3"/>',
             'klima'    => '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+            'zaehler'  => '<path d="M3 3h18v18H3z"/><path d="M7 12h10"/><path d="M12 7v10"/>',
             'taster'   => '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
             'url'      => '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 19"/>',
             'szene'    => '<path d="M9.9 2.1 8.5 6.4 4.2 7.8l4.3 1.4 1.4 4.3 1.4-4.3 4.3-1.4-4.3-1.4Z"/><path d="M18 12l-.7 2.1-2.1.7 2.1.7.7 2.1.7-2.1 2.1-.7-2.1-.7Z"/><path d="M6.5 16l-.5 1.5-1.5.5 1.5.5.5 1.5.5-1.5 1.5-.5-1.5-.5Z"/>',
