@@ -10,6 +10,17 @@ einen Knopf ausgelöst wurde — es ist reine Darstellung und Bedienung.
 Der Funktionsname steht bewusst **nicht** in der Kachel: die
 Kachel-Visualisierung schreibt den Instanznamen selbst darüber.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/kacheln-dunkel.svg">
+  <img alt="Die zehn REGOvisu-Kacheln: Schalten, Dimmen, Jalousie, Klima, Szene, Sensor, Wetterstation, Info, Taster, URL-Aufruf" src="docs/kacheln-hell.svg" width="456">
+</picture>
+
+Maßstabsgetreu gezeichnet, hell und dunkel — welche Palette eine Kachel nimmt,
+entscheidet sie selbst (siehe [Design](#design)). Zum Anfassen liegt dieselbe
+Darstellung als Seite bei: [`docs/vorschau.html`](docs/vorschau.html) — im
+Browser öffnen, die Regler und Knöpfe reagieren.
+
+
 ## Module
 
 | Modul | In der Kachel |

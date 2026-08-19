@@ -1,0 +1,380 @@
+<title>REGOvisu Kacheln</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* Die Seite trägt dieselben Tokens wie das Modul: REGObaseX1, hell zuerst. */
+:root{
+  --bg:#f7f7f6; --surface:#ffffff; --surface-2:#f1f1ef; --surface-3:#e7e7e4;
+  --border:rgba(0,0,0,.08); --border-strong:rgba(0,0,0,.16);
+  --text:#1a1a1c; --text-muted:#65656d; --text-faint:#8b8b93;
+  --accent:#4d7616; --accent-contrast:#ffffff; --accent-bg:rgba(77,118,22,.1);
+  --danger:#cf222e;
+  --radius-lg:10px; --radius-md:8px; --radius-sm:6px;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c0c0e; --surface:#131316; --surface-2:#1a1a1e; --surface-3:#202024;
+    --border:rgba(255,255,255,.06); --border-strong:rgba(255,255,255,.14);
+    --text:#f2f2f4; --text-muted:#86868f; --text-faint:#55555c;
+    --accent:#b9ff5c; --accent-contrast:#0e1a02; --accent-bg:rgba(185,255,92,.14);
+    --danger:#f85149;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c0c0e; --surface:#131316; --surface-2:#1a1a1e; --surface-3:#202024;
+  --border:rgba(255,255,255,.06); --border-strong:rgba(255,255,255,.14);
+  --text:#f2f2f4; --text-muted:#86868f; --text-faint:#55555c;
+  --accent:#b9ff5c; --accent-contrast:#0e1a02; --accent-bg:rgba(185,255,92,.14);
+  --danger:#f85149;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+.statusbar{
+  display:flex; align-items:baseline; justify-content:space-between; gap:1rem;
+  flex-wrap:wrap;
+  padding:.7rem clamp(1rem,4vw,2.5rem);
+  background:var(--surface); border-bottom:1px solid var(--border);
+  font-size:1.05rem; position:sticky; top:0; z-index:5;
+}
+.statusbar-name{font-weight:700; letter-spacing:-.01em}
+.statusbar-name span{color:var(--accent)}
+.statusbar-meta{color:var(--text-muted); font-variant-numeric:tabular-nums; font-size:.9rem}
+
+main{max-width:1080px; margin:0 auto; padding:clamp(1.5rem,4vw,3rem) clamp(1rem,4vw,2.5rem) 5rem}
+
+.lede{max-width:62ch; margin:0 0 3rem}
+.lede h1{
+  font-size:clamp(1.9rem,4.5vw,2.7rem); font-weight:800; letter-spacing:-.03em;
+  line-height:1.08; margin:0 0 .6rem; text-wrap:balance;
+}
+.lede p{margin:0; color:var(--text-muted)}
+
+section{margin:0 0 3.5rem}
+h2{
+  font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--text-muted); margin:0 0 1.1rem;
+  padding-bottom:.6rem; border-bottom:1px solid var(--border);
+}
+.note{color:var(--text-muted); font-size:.9rem; margin:.9rem 0 0; max-width:64ch}
+
+/* ---- Specimen: beide Paletten unabhängig vom Seiten-Theme ---- */
+.specimens{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1.25rem}
+.spec{border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden}
+.spec-label{
+  display:flex; align-items:center; gap:.5rem;
+  padding:.55rem .9rem; font-size:.7rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:.07em;
+  background:var(--surface-2); color:var(--text-muted);
+  border-bottom:1px solid var(--border);
+}
+.swatch{width:10px; height:10px; border-radius:3px; border:1px solid var(--border-strong)}
+.spec-body{display:flex; flex-direction:column; gap:.75rem; padding:1.1rem; background:var(--t-ground)}
+.spec-caption{
+  font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--t-caption); margin-bottom:-.45rem;
+}
+
+/* Kachel-Tokens, im Specimen fest verdrahtet */
+.spec[data-palette="light"]{
+  --t-surface:#ffffff; --t-surface-3:#e7e7e4; --t-surface-hover:#dedede;
+  --t-border:rgba(0,0,0,.08); --t-border-strong:rgba(0,0,0,.16);
+  --t-text:#1a1a1c; --t-text-muted:#65656d; --t-text-faint:#8b8b93;
+  --t-accent:#4d7616; --t-danger:#cf222e;
+  --t-danger-bg:rgba(207,34,46,.1); --t-danger-border:rgba(207,34,46,.28);
+  --t-shadow:0 1px 2px rgba(0,0,0,.08);
+  --t-ground:#f7f7f6; --t-caption:#8b8b93;
+}
+.spec[data-palette="dark"]{
+  --t-surface:#131316; --t-surface-3:#202024; --t-surface-hover:#232327;
+  --t-border:rgba(255,255,255,.06); --t-border-strong:rgba(255,255,255,.14);
+  --t-text:#f2f2f4; --t-text-muted:#86868f; --t-text-faint:#55555c;
+  --t-accent:#b9ff5c; --t-danger:#f85149;
+  --t-danger-bg:rgba(248,81,73,.13); --t-danger-border:rgba(248,81,73,.32);
+  --t-shadow:0 1px 2px rgba(0,0,0,.4);
+  --t-ground:#0c0c0e; --t-caption:#55555c;
+}
+
+/* ---- Die Kachel selbst: identisch zum Modul ---- */
+.tile{display:flex; align-items:center; padding:8px; background:var(--t-ground)}
+.stack{display:flex; flex-direction:column; gap:9px; width:100%}
+.line{display:flex; align-items:center; gap:12px; width:100%}
+.buttons{display:flex; gap:8px; width:100%}
+.buttons button, .knopf-link{
+  flex:1 1 0; min-width:0; min-height:2.5rem;
+  font-family:inherit; font-size:14px; font-weight:600; color:var(--t-text);
+  background:var(--t-surface-3); border:1px solid var(--t-border);
+  border-radius:10px; padding:.5rem .8rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; text-decoration:none;
+  transition:background .15s ease, border-color .15s ease, color .15s ease;
+}
+.buttons button:hover, .knopf-link:hover{background:var(--t-surface-hover)}
+.knopf-link:hover{border-color:var(--t-accent); color:var(--t-accent)}
+.onoff-button{font-weight:700; letter-spacing:.02em}
+.onoff-button-on{background:var(--t-danger-bg); border-color:var(--t-danger-border); color:var(--t-danger)}
+.onoff-button-off{background:var(--t-surface-3); border-color:var(--t-border); color:var(--t-text)}
+
+.chan{position:relative; display:flex; align-items:center; flex:1 1 auto; min-width:60px}
+.chan-track{position:relative; flex:1 1 auto; height:10px; border-radius:999px;
+  background:var(--t-surface-3); border:1px solid var(--t-border); cursor:pointer}
+.chan-thumb{position:absolute; top:50%; transform:translate(-50%,-50%); width:26px; height:26px;
+  border-radius:50%; background:var(--t-accent)}
+.chan input[type=range]{position:absolute; inset:-12px 0; width:100%; min-height:34px; margin:0;
+  opacity:0; cursor:pointer; -webkit-appearance:none; appearance:none}
+.pct{flex:0 0 auto; min-width:3.2rem; text-align:left; font-size:15px; font-weight:600;
+  color:var(--t-text-faint); font-variant-numeric:tabular-nums}
+
+.readout{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0}
+.readout-label{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--t-text-muted)}
+.readout-value{font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--t-text)}
+.stepper{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+.stepper button{width:2.5rem; min-height:2.5rem; font-size:16px; flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--t-surface-3); border:1px solid var(--t-border); border-radius:10px;
+  color:var(--t-text); font-weight:600; cursor:pointer}
+.stepper span{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; min-width:4rem; text-align:center; color:var(--t-text)}
+
+.sensor{display:flex; align-items:baseline; flex-wrap:wrap; gap:0 .25rem; width:100%}
+.sensor-value{font-size:1.9rem; font-weight:700; line-height:1.05; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; color:var(--t-text)}
+.sensor-unit{font-size:.85rem; font-weight:500; color:var(--t-text-muted)}
+.badges{display:flex; flex-wrap:wrap; gap:.4rem; width:100%}
+.badge{display:inline-flex; align-items:center; padding:.18rem .6rem; border:1px solid var(--t-border);
+  border-radius:999px; background:var(--t-surface-3); font-size:.8rem; color:var(--t-text-muted)}
+
+.werte{display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; width:100%}
+.wert{display:flex; flex-direction:column; gap:.1rem; min-width:0}
+.wert-zahl{font-size:1.25rem; font-weight:700; line-height:1.1; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; color:var(--t-text); white-space:nowrap}
+.wert-einheit{margin-left:.2rem; font-size:.75rem; font-weight:500; color:var(--t-text-muted)}
+.wert-label{font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--t-text-muted); white-space:nowrap}
+.muted{color:var(--t-text-faint); font-size:.85rem}
+
+/* ---- Tabellen ---- */
+.table-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius-md)}
+table{border-collapse:collapse; width:100%; font-size:.88rem; min-width:520px}
+th{
+  text-align:left; font-size:.68rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.07em; color:var(--text-muted);
+  padding:.7rem .9rem; background:var(--surface-2); border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+td{padding:.6rem .9rem; border-bottom:1px solid var(--border); vertical-align:top}
+tr:last-child td{border-bottom:none}
+code{font-family:var(--mono); font-size:.85em; color:var(--accent); background:var(--accent-bg); padding:.1rem .35rem; border-radius:4px}
+
+/* ---- Ablauf ---- */
+.steps{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.6rem; counter-reset:step}
+.steps li{
+  display:flex; gap:.9rem; align-items:flex-start;
+  padding:.9rem 1.1rem; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-md);
+}
+.steps li::before{
+  counter-increment:step; content:counter(step);
+  flex:0 0 auto; width:1.6rem; height:1.6rem; border-radius:5px;
+  display:grid; place-items:center;
+  background:var(--accent-bg); color:var(--accent);
+  font-family:var(--mono); font-size:.78rem; font-weight:500;
+}
+.steps strong{display:block; font-weight:700}
+.steps span{color:var(--text-muted); font-size:.9rem}
+
+.tally{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.9rem}
+.tally div{padding:1rem 1.1rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md)}
+.tally b{display:block; font-size:1.9rem; font-weight:700; letter-spacing:-.02em; line-height:1.05; font-variant-numeric:tabular-nums}
+.tally small{display:block; margin-top:.25rem; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted)}
+
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+
+<div class="statusbar">
+  <span class="statusbar-name">REGO<span>visu</span></span>
+  <span class="statusbar-meta">Symcon 9.1 · Kachel-Visualisierung · HTML-SDK</span>
+</div>
+
+<main>
+  <div class="lede">
+    <h1>Die Bedienelemente aus REGObaseX1, in Symcon</h1>
+    <p>Zehn Kachel-Module, gerendert über das HTML-SDK. Der Zuschnitt folgt dem Detail-Dialog von REGObaseX1:
+      Regler oben über die volle Breite mit großem runden Griff, darunter gleich breite Knöpfe. Den Namen schreibt
+      Symcon selbst über die Kachel, deshalb steht er nicht darin. Die Kacheln unten sind echt, anfassen erlaubt.</p>
+  </div>
+
+  <section>
+    <h2>Die Bedienelemente, in beiden Paletten</h2>
+    <div class="specimens">
+      <div class="spec" data-palette="light">
+        <div class="spec-label"><i class="swatch" style="background:#f7f7f6"></i>Hell</div>
+        <div class="spec-body" data-tiles></div>
+      </div>
+      <div class="spec" data-palette="dark">
+        <div class="spec-label"><i class="swatch" style="background:#0c0c0e"></i>Dunkel</div>
+        <div class="spec-body" data-tiles></div>
+      </div>
+    </div>
+    <p class="note">Welche Palette eine Kachel nimmt, entscheidet sie selbst: die Kachel-Visualisierung hängt
+      ihre Farben als Parameter an das iframe, aus der Helligkeit von <code>cardcolor</code> leitet das Modul das
+      Theme ab. Sie folgt damit Symcon und nicht dem Betriebssystem.</p>
+  </section>
+
+  <section>
+    <h2>Zehn Funktionstypen, zehn Kacheln</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Funktionstyp</th><th>Kachel</th><th>Aktionen aus dem Funktionenkatalog</th></tr></thead>
+        <tbody>
+          <tr><td><code>schalten</code></td><td>Schalten</td><td>Schalten · Status</td></tr>
+          <tr><td><code>dimmen</code></td><td>Dimmen</td><td>Schalten · Status · Dimmen absolut · Zustandswert</td></tr>
+          <tr><td><code>jalousie</code></td><td>Jalousie</td><td>Move · Step · Move to Position · Position Feedback</td></tr>
+          <tr><td><code>temperatur</code> · <code>klima</code></td><td>Klima</td><td>Ist-Temperatur · Soll-Temperatur (+ Rückmeldung)</td></tr>
+          <tr><td><code>szene</code></td><td>Szene</td><td>Szene — drei beschriftbare Plätze</td></tr>
+          <tr><td><code>sensor</code></td><td>Sensor</td><td>je Unterart: Temperatur · Feuchte · CO2 Wert · Fenster · Melder</td></tr>
+          <tr><td><code>wetterstation</code></td><td>Wetterstation</td><td>alle Adressen der Funktion, sortiert</td></tr>
+          <tr><td><code>taster</code></td><td>Taster</td><td>Auslösen</td></tr>
+          <tr><td><code>url_aufruf</code></td><td>URL-Aufruf</td><td>keine Gruppenadresse — Feld <code>url</code> der Funktion</td></tr>
+          <tr><td>—</td><td>Info</td><td>Sonnenauf-/-untergang aus der Location-Instanz, Außentemperatur</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Nichts davon ist geraten: die Aktion steht im Funktionenkatalog von REGOdeploy, die
+      Gruppenadresse im Projekt, und das Gerät dazu im importierten ETS-Baum. Gehört eine Adresse einer Funktion,
+      gewinnt deren Datenpunkttyp — bei Szenen etwa 18.001 statt der 17.001 aus der Datei.</p>
+  </section>
+
+  <section>
+    <h2>Tokens</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rolle</th><th>Hell</th><th>Dunkel</th><th>Wo</th></tr></thead>
+        <tbody>
+          <tr><td>Kachelfläche</td><td><code>#ffffff</code></td><td><code>#131316</code></td><td>Knöpfe, Reglerspur</td></tr>
+          <tr><td>Rahmen</td><td><code>rgba(0,0,0,.08)</code></td><td><code>rgba(255,255,255,.06)</code></td><td>1 px, Radius 10 px</td></tr>
+          <tr><td>Text</td><td><code>#1a1a1c</code></td><td><code>#f2f2f4</code></td><td>Knopfbeschriftung, Messwert</td></tr>
+          <tr><td>Gedämpft</td><td><code>#65656d</code></td><td><code>#86868f</code></td><td>Beschriftungen, Einheiten</td></tr>
+          <tr><td>Akzent</td><td><code>#4d7616</code></td><td><code>#b9ff5c</code></td><td>Reglergriff</td></tr>
+          <tr><td>Eingeschaltet</td><td><code>#cf222e</code></td><td><code>#f85149</code></td><td>AN-Zustand</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Inter, Grundgröße 14 px. Einen eigenen Rahmen zeichnet die Kachel nicht — Symcons Karte ist
+      der Rahmen und liefert Raum und Namen, so wie im Detail-Dialog die Kopfzeile.</p>
+  </section>
+
+  <section>
+    <h2>Ein Skript baut alles</h2>
+    <ol class="steps">
+      <li><div><strong>Modulbibliothek</strong><span>installiert sich selbst über die Modulverwaltung</span></div></li>
+      <li><div><strong>Struktur</strong><span>„Visu &lt;Projekt&gt;" mit Etagen und Räumen, Reihenfolge aus REGOdeploy</span></div></li>
+      <li><div><strong>Adresskatalog</strong><span>der komplette ETS-Baum unter „REGOdeploy &gt; KNX", jede Adresse als eigenes Gerät</span></div></li>
+      <li><div><strong>Kacheln</strong><span>in den Raum, verdrahtet mit den Variablen dieser Geräte</span></div></li>
+      <li><div><strong>Verknüpfungen</strong><span>unter jede Kachel, damit die Detailseite die Adressen mit ihren Verläufen zeigt</span></div></li>
+      <li><div><strong>Aufzeichnung</strong><span>für alle Messwerte, und deren Geräte auf nur lesen</span></div></li>
+      <li><div><strong>Visualisierung</strong><span>Startpunkt, Kachelmaße je Zielgerät, Diagramme auf Stunde</span></div></li>
+    </ol>
+    <p class="note">Das Skript ist zugleich die Push-Vorlage von REGOdeploy — „Skript übertragen" und
+      „Skript ausführen" erledigen den kompletten Aufbau, auf einem leeren Symcon in unter einer Sekunde.</p>
+  </section>
+
+  <section>
+    <h2>Projekt WG60, aktueller Stand</h2>
+    <div class="tally">
+      <div><b>339</b><small>KNX-Geräte</small></div>
+      <div><b>10</b><small>Hauptgruppen</small></div>
+      <div><b>39</b><small>Kacheln</small></div>
+      <div><b>90</b><small>Verknüpfungen</small></div>
+      <div><b>63</b><small>aufgezeichnet</small></div>
+    </div>
+    <p class="note">Der Adressbaum kommt aus der importierten ETS-Datei, nicht aus dem generierten Schema — mit
+      den echten Gruppennamen (Philips HUE, Heizung, Multiroom, OpenKNX). 91 Adressen bleiben außen vor, weil die
+      ETS ihnen keinen Datenpunkttyp gibt; ohne Typ lässt sich kein Gerät erzeugen.</p>
+  </section>
+</main>
+
+<script>
+const icons = {
+  schalten: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  jalousie: '<path d="M3 3h18"/><path d="M20 7H8"/><path d="M20 11H8"/><path d="M10 19h10"/><path d="M8 15h12"/><path d="M4 3v14a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3"/>',
+  klima: '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+  szene: '<path d="M9.9 2.1 8.5 6.4 4.2 7.8l4.3 1.4 1.4 4.3 1.4-4.3 4.3-1.4-4.3-1.4Z"/><path d="M18 12l-.7 2.1-2.1.7 2.1.7.7 2.1.7-2.1 2.1-.7-2.1-.7Z"/><path d="M6.5 16l-.5 1.5-1.5.5 1.5.5.5 1.5.5-1.5 1.5-.5-1.5-.5Z"/>'
+};
+
+const slider = pct =>
+  '<div class="line"><span class="pct" data-slider-label>' + pct + ' %</span>'
+  + '<span class="chan"><span class="chan-track">'
+  + '<span class="chan-thumb" style="left:calc(13px + (100% - 26px) * ' + (pct / 100) + ')"></span>'
+  + '<input type="range" min="0" max="100" value="' + pct + '" data-slider></span></span></div>';
+
+const buttons = inner => '<div class="buttons">' + inner + '</div>';
+
+const beispiele = [
+  ['Schalten', buttons('<button type="button" class="onoff-button onoff-button-off" data-onoff>AUS</button>')],
+  ['Dimmen', slider(60) + buttons('<button type="button" class="onoff-button onoff-button-on" data-onoff data-on>AN</button>')],
+  ['Jalousie', slider(35) + buttons('<button type="button">Auf</button><button type="button">Stopp</button><button type="button">Ab</button>')],
+  ['Klima', '<div class="line"><span class="readout"><span class="readout-label">Ist</span>'
+    + '<span class="readout-value">21,4 °C</span></span>'
+    + '<span class="stepper"><button type="button" data-step="-0.5">−</button>'
+    + '<span data-soll>22,0 °C</span><button type="button" data-step="0.5">+</button></span></div>'],
+  ['Szene', buttons('<button type="button">Szene 1</button><button type="button">Szene 2</button><button type="button">Szene 3</button>')],
+  ['Sensor', '<div class="sensor"><span class="sensor-value">geschlossen</span></div>'
+    + '<div class="badges"><span class="badge">Fenster gekippt: Nein</span><span class="badge">Batterie 87 %</span></div>'],
+  ['Wetterstation', '<div class="werte">'
+    + '<span class="wert"><span class="wert-zahl">31,1<span class="wert-einheit">°C</span></span><span class="wert-label">Außentemperatur</span></span>'
+    + '<span class="wert"><span class="wert-zahl">3,4<span class="wert-einheit">m/s</span></span><span class="wert-label">Windgeschwindigkeit</span></span>'
+    + '<span class="wert"><span class="wert-zahl">9392<span class="wert-einheit">lux</span></span><span class="wert-label">Helligkeitswert Ost</span></span>'
+    + '</div><div class="badges"><span class="badge">Regen: Nein</span><span class="badge">Windalarm 1: Nein</span></div>'],
+  ['Info', '<div class="werte">'
+    + '<span class="wert"><span class="wert-zahl">06:28</span><span class="wert-label">Sonnenaufgang</span></span>'
+    + '<span class="wert"><span class="wert-zahl">20:33</span><span class="wert-label">Sonnenuntergang</span></span>'
+    + '<span class="wert"><span class="wert-zahl">30,9<span class="wert-einheit">°C</span></span><span class="wert-label">Außentemperatur</span></span>'
+    + '</div>'],
+  ['Taster', buttons('<button type="button">Klingel</button>')],
+  ['URL-Aufruf', buttons('<a class="knopf-link" href="#" onclick="return false">Öffnen</a>')]
+];
+
+const markup = beispiele.map(([name, inhalt]) =>
+  '<div class="spec-caption">' + name + '</div>'
+  + '<div class="tile"><div class="stack">' + inhalt + '</div></div>').join('');
+
+document.querySelectorAll('[data-tiles]').forEach(host => {
+  host.innerHTML = markup;
+
+  host.querySelectorAll('[data-onoff]').forEach(button => {
+    button.addEventListener('click', () => {
+      const on = button.hasAttribute('data-on');
+      button.toggleAttribute('data-on', !on);
+      button.className = 'onoff-button ' + (on ? 'onoff-button-off' : 'onoff-button-on');
+      button.textContent = on ? 'AUS' : 'AN';
+    });
+  });
+
+  host.querySelectorAll('[data-slider]').forEach(input => {
+    const track = input.parentElement;
+    const label = track.closest('.line').querySelector('[data-slider-label]');
+    input.addEventListener('input', () => {
+      track.querySelector('.chan-thumb').style.left =
+        'calc(13px + (100% - 26px) * ' + (input.value / 100) + ')';
+      label.textContent = input.value + ' %';
+    });
+  });
+
+  host.querySelectorAll('[data-step]').forEach(button => {
+    button.addEventListener('click', () => {
+      const readout = button.parentElement.querySelector('[data-soll]');
+      const value = parseFloat(readout.textContent.replace(',', '.')) + parseFloat(button.dataset.step);
+      readout.textContent = Math.min(30, Math.max(5, value)).toFixed(1).replace('.', ',') + ' °C';
+    });
+  });
+});
+</script>
