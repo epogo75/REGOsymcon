@@ -22,7 +22,8 @@ class REGOvisuWetterstation extends IPSModule
 
         $this->RegisterPropertyString('Readings', '[]');
 
-        $this->SetVisualizationType(1);
+        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
+        $this->SetVisualizationType(2);
     }
 
     public function ApplyChanges(): void
@@ -47,8 +48,15 @@ class REGOvisuWetterstation extends IPSModule
 
     public function GetVisualizationTile(): string
     {
+        $eintraege = [];
+        foreach ($this->Readings() as $zeile) {
+            $label = trim((string) ($zeile['Label'] ?? ''));
+            $eintraege[$label !== '' ? $label : 'Messwert'] = (int) ($zeile['VariableID'] ?? 0);
+        }
+
         $inner = '<div class="werte" id="rego-werte"></div>'
-            . '<div class="badges" id="rego-badges"></div>';
+            . '<div class="badges" id="rego-badges"></div>'
+            . $this->RegoObjekte($eintraege);
 
         $script = <<<'JS'
 function regoRenderStation(daten) {

@@ -22,7 +22,8 @@ class REGOvisuSchalten extends IPSModule
         $this->RegisterPropertyInteger('StatusVariable', 0);
         $this->RegisterPropertyInteger('SwitchVariable', 0);
 
-        $this->SetVisualizationType(1);
+        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
+        $this->SetVisualizationType(2);
     }
 
     public function ApplyChanges(): void
@@ -82,6 +83,9 @@ function regoToggle() {
 window.regoHandlers['Status'] = regoRender;
 regoRender(window.regoState.Status);
 JS;
+
+        $inner .= $this->RegoObjekte(['Schalten' => $this->ReadPropertyInteger('SwitchVariable'),
+            'Status' => $this->ReadPropertyInteger('StatusVariable')]);
 
         return $this->RegoTile('schalten', $inner, $script, ['Status' => $this->CurrentState()]);
     }

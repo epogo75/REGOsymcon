@@ -25,7 +25,8 @@ class REGOvisuKlima extends IPSModule
         $this->RegisterPropertyFloat('MinValue', 5);
         $this->RegisterPropertyFloat('MaxValue', 30);
 
-        $this->SetVisualizationType(1);
+        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
+        $this->SetVisualizationType(2);
     }
 
     public function ApplyChanges(): void
@@ -111,6 +112,10 @@ window.regoHandlers['Setpoint'] = regoRenderSetpoint;
 regoRenderActual(window.regoState.Actual);
 regoRenderSetpoint(window.regoState.Setpoint);
 JS;
+
+        $inner .= $this->RegoObjekte(['Ist-Temperatur' => $this->ReadPropertyInteger('ActualVariable'),
+            'Soll-Temperatur' => $this->ReadPropertyInteger('SetpointVariable'),
+            'Soll Rückmeldung' => $this->ReadPropertyInteger('SetpointFeedbackVariable')]);
 
         return $this->RegoTile('klima', $inner, $script, [
             'Actual'   => $this->CurrentActual(),

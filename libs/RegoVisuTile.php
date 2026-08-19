@@ -131,6 +131,50 @@ trait RegoVisuTile
     }
 
     /**
+     * Die beteiligten Objekte als Liste -- erscheint erst, wenn die Kachel
+     * aufgeklappt ist. Jede Zeile oeffnet das Objekt in Symcon; dort gibt es
+     * den Verlauf.
+     *
+     * $eintraege ist "Beschriftung => Variablen-ID".
+     */
+    protected function RegoObjekte(array $eintraege): string
+    {
+        $pfeil = '<svg class="objekt-pfeil" width="14" height="14" viewBox="0 0 24 24" fill="none" '
+            . 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+            . 'aria-hidden="true"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>';
+
+        $zeilen = '';
+        $gesehen = [];
+        foreach ($eintraege as $label => $variableID) {
+            $variableID = (int) $variableID;
+            if (($variableID == 0) || !IPS_VariableExists($variableID) || isset($gesehen[$variableID])) {
+                continue;
+            }
+            $gesehen[$variableID] = true;
+
+            // Der Name des Geraets sagt mehr als der der Variable ("Value"),
+            // und die Gruppenadresse macht die Zeilen unterscheidbar -- bei
+            // einer Funktion heissen alle Geraete gleich.
+            $geraet = IPS_GetObject($variableID)['ParentID'];
+            $name = IPS_ObjectExists($geraet) ? IPS_GetName($geraet) : IPS_GetName($variableID);
+
+            if (IPS_InstanceExists($geraet)) {
+                $config = json_decode(IPS_GetConfiguration($geraet), true);
+                if (isset($config['Address1'], $config['Address2'], $config['Address3'])) {
+                    $name .= '  ·  ' . $config['Address1'] . '/' . $config['Address2'] . '/' . $config['Address3'];
+                }
+            }
+
+            $zeilen .= '<button type="button" class="objekt" onclick="openObject(' . $variableID . ')">'
+                . '<span class="objekt-label">' . htmlspecialchars((string) $label) . '</span>'
+                . '<span class="objekt-name">' . htmlspecialchars($name) . '</span>'
+                . $pfeil . '</button>';
+        }
+
+        return ($zeilen === '') ? '' : '<div class="objekte">' . $zeilen . '</div>';
+    }
+
+    /**
      * Eine Reihe gleich breiter Knoepfe.
      */
     protected function RegoButtons(string $buttons): string
@@ -293,6 +337,34 @@ svg{display:block}
    Verlauf, den die Kachel selbst nicht zeichnen soll. */
 .oeffnen{cursor:pointer}
 .oeffnen:hover .sensor-value,.oeffnen:hover .wert-zahl{color:var(--accent)}
+
+/* Die beteiligten Objekte: in der Kachel versteckt, sichtbar sobald sie
+   aufgeklappt ist -- dann ist das iframe hoch genug. Symcon kennt keinen
+   Schalter dafuer, die Hoehe ist das einzige verlaessliche Merkmal. */
+.objekte{display:none}
+@media (min-height: 300px){
+    .objekte{
+        display:flex; flex-direction:column; width:100%;
+        margin-top:.5rem; padding-top:.5rem; border-top:1px solid var(--border);
+    }
+    .objekt{
+        display:flex; align-items:center; gap:.6rem; width:100%;
+        padding:.45rem .2rem; background:none; border:0; border-radius:var(--radius-sm);
+        color:var(--text); font:inherit; font-size:13px; text-align:left; cursor:pointer;
+    }
+    .objekt:hover{background:var(--surface-2)}
+    .objekt-label{
+        flex:0 0 auto; min-width:9rem;
+        font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+        color:var(--text-muted);
+    }
+    .objekt-name{
+        flex:1 1 auto; min-width:0;
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted);
+    }
+    .objekt-pfeil{flex:0 0 auto; color:var(--text-faint)}
+    .objekt:hover .objekt-pfeil,.objekt:hover .objekt-name{color:var(--accent)}
+}
 :focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:var(--radius-sm)}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>

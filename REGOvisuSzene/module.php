@@ -23,7 +23,8 @@ class REGOvisuSzene extends IPSModule
         $this->RegisterPropertyInteger('ModeVariable', 0);
         $this->RegisterPropertyString('Scenes', '[]');
 
-        $this->SetVisualizationType(1);
+        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
+        $this->SetVisualizationType(2);
     }
 
     public function ApplyChanges(): void
@@ -66,9 +67,14 @@ class REGOvisuSzene extends IPSModule
             $scenes = [];
         }
 
+        $objekte = $this->RegoObjekte([
+            'Szenennummer' => $this->ReadPropertyInteger('SceneVariable'),
+            'Aufrufen/Speichern' => $this->ReadPropertyInteger('ModeVariable'),
+        ]);
+
         if (count($scenes) == 0) {
             return $this->RegoTile('szene',
-                '<div class="line"><span class="muted">Keine Szene hinterlegt</span></div>', '');
+                '<div class="line"><span class="muted">Keine Szene hinterlegt</span></div>' . $objekte, '');
         }
 
         $buttons = '';
@@ -79,6 +85,6 @@ class REGOvisuSzene extends IPSModule
                 . htmlspecialchars($label) . '</button>';
         }
 
-        return $this->RegoTile('szene', $this->RegoButtons($buttons), '');
+        return $this->RegoTile('szene', $this->RegoButtons($buttons) . $objekte, '');
     }
 }

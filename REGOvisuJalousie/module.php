@@ -30,7 +30,8 @@ class REGOvisuJalousie extends IPSModule
         $this->RegisterPropertyInteger('PositionFeedbackVariable', 0);
         $this->RegisterPropertyBoolean('InvertMove', false);
 
-        $this->SetVisualizationType(1);
+        // 2 = auch im Vollbild; aufgeklappt zeigt die Kachel die Objekte.
+        $this->SetVisualizationType(2);
     }
 
     public function ApplyChanges(): void
@@ -115,6 +116,11 @@ function regoPos(value) {
 window.regoHandlers['Position'] = regoRenderPosition;
 regoRenderPosition(window.regoState.Position);
 JS;
+
+        $inner .= $this->RegoObjekte(['Fahren' => $this->ReadPropertyInteger('MoveVariable'),
+            'Stopp' => $this->ReadPropertyInteger('StepVariable'),
+            'Position' => $this->ReadPropertyInteger('PositionVariable'),
+            'Position Rückmeldung' => $this->ReadPropertyInteger('PositionFeedbackVariable')]);
 
         return $this->RegoTile('jalousie', $inner, $script, ['Position' => $this->CurrentPosition()]);
     }
