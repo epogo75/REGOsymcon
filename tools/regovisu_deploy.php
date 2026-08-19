@@ -46,6 +46,10 @@ $KACHEL_MASSE = [
 
 // Die Wetterstation zeigt ein ganzes Werteraster und braucht mehr Platz als
 // eine gewöhnliche Kachel -- deshalb eigene Maße, gleicher Aufbau.
+// Zeitspanne der Diagramme in der Visualisierung:
+// 0 Stunde, 1 Tag, 2 Woche, 3 Monat, 4 Jahr, 5 Jahrzehnt.
+$GRAPH_ZEITSPANNE = 0;
+
 $WETTER_MASSE = [
     'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
     'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
@@ -735,13 +739,22 @@ function wetterstation_readings($funktion, &$index)
  * Konfigurationen bleiben erhalten, nur die Maße der eigenen Kacheln werden
  * gesetzt.
  */
-function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterMasse)
+function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterMasse, $zeitspanne)
 {
     $angepasst = 0;
 
     foreach (IPS_GetInstanceListByModuleID(TILE_VISU_GUID) as $visId) {
-        if (json_decode(IPS_GetConfiguration($visId), true)['BaseID'] !== $visuRootId) {
+        $config = json_decode(IPS_GetConfiguration($visId), true);
+        $aendern = false;
+        if ($config['BaseID'] !== $visuRootId) {
             IPS_SetProperty($visId, 'BaseID', $visuRootId);
+            $aendern = true;
+        }
+        if (($config['GraphTimeSpan'] ?? null) !== $zeitspanne) {
+            IPS_SetProperty($visId, 'GraphTimeSpan', $zeitspanne);
+            $aendern = true;
+        }
+        if ($aendern) {
             IPS_ApplyChanges($visId);
         }
 
@@ -1257,7 +1270,7 @@ if ($infoId != 0) {
 $aufgezeichnet = aktiviere_aufzeichnung($messwerte);
 $nurLesen = setze_nur_lesen($messwerte);
 
-$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $WETTER_MASSE);
+$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $WETTER_MASSE, $GRAPH_ZEITSPANNE);
 
 // Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
 $verwaist = [];
@@ -1313,13 +1326,10 @@ echo sprintf("  Visu:     %d Visualisierung(en) starten auf \"%s\"; Kacheln quer
 echo sprintf("  Verwaist: %d Objekte (%d verschoben)\n", count($verwaist), $verschoben);
 
 if (!empty($ohneDpt)) {
-    echo sprintf("\n%d Adressen ohne Datenpunkttyp in der ETS -- ohne Typ kein Gerät:\n", count($ohneDpt));
-    foreach (array_slice($ohneDpt, 0, 8) as $zeile) {
-        echo "  - $zeile\n";
-    }
-    if (count($ohneDpt) > 8) {
-        echo '  … und ' . (count($ohneDpt) - 8) . " weitere\n";
-    }
+    // Ohne Datenpunkttyp laesst sich kein Geraet erzeugen -- nur zaehlen,
+    // nicht seitenweise auflisten.
+    echo sprintf("\n%d Adressen der ETS haben keinen Datenpunkttyp und bleiben deshalb aussen vor.\n",
+        count($ohneDpt));
 }
 
 if (!empty($hinweise)) {
