@@ -86,12 +86,12 @@ class REGOvisuJalousie extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $controls = $this->RegoSlider('rego-pos', '', 'regoPos')
-            . '<span class="jalousie">'
-            . '<button type="button" onclick="requestAction(\'Up\', true)">Auf</button>'
-            . '<button type="button" onclick="requestAction(\'Stop\', true)">Stopp</button>'
-            . '<button type="button" onclick="requestAction(\'Down\', true)">Ab</button>'
-            . '</span>';
+        $inner = $this->RegoSliderLine('rego-pos', 'regoPos')
+            . $this->RegoButtons(
+                '<button type="button" onclick="requestAction(\'Up\', true)">Auf</button>'
+                . '<button type="button" onclick="requestAction(\'Stop\', true)">Stopp</button>'
+                . '<button type="button" onclick="requestAction(\'Down\', true)">Ab</button>'
+            );
 
         $script = <<<'JS'
 function regoRenderPosition(value) {
@@ -100,12 +100,13 @@ function regoRenderPosition(value) {
         document.querySelector('#rego-pos input').value = value === null ? 0 : value;
         regoFill('rego-pos', value);
     }
-    regoValue(value === null ? '' : regoNumber(value) + ' %');
+    document.getElementById('rego-pos-label').textContent =
+        value === null ? '–' : regoNumber(value) + '%';
 }
 function regoPosPreview(value) {
     window.regoDragging = true;
     regoFill('rego-pos', parseFloat(value));
-    regoValue(regoNumber(parseFloat(value)) + ' %');
+    document.getElementById('rego-pos-label').textContent = regoNumber(parseFloat(value)) + '%';
 }
 function regoPos(value) {
     window.regoDragging = false;
@@ -115,7 +116,7 @@ window.regoHandlers['Position'] = regoRenderPosition;
 regoRenderPosition(window.regoState.Position);
 JS;
 
-        return $this->RegoTile('jalousie', '', $controls, $script, ['Position' => $this->CurrentPosition()]);
+        return $this->RegoTile('jalousie', $inner, $script, ['Position' => $this->CurrentPosition()]);
     }
 
     private function CurrentPosition(): ?float

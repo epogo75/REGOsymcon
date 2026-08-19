@@ -76,30 +76,20 @@ class REGOvisuDimmen extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        // Reihenfolge wie im Entwurf: Regler links, Knopf ganz rechts.
-        $controls = $this->RegoSlider('rego-dim', '', 'regoDim')
-            . '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
-            . 'onclick="regoToggle()">unbekannt</button>';
+        // Wie im Detail-Dialog: Regler oben, Knopf darunter ueber die Breite.
+        $inner = $this->RegoSliderLine('rego-dim', 'regoDim')
+            . $this->RegoButtons(
+                '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
+                . 'onclick="regoToggle()">unbekannt</button>'
+            );
 
         $script = <<<'JS'
-function regoText() {
-    var status = window.regoState.Status;
-    var helligkeit = window.regoState.Brightness;
-    if (status === null && helligkeit === null) {
-        return '';
-    }
-    if (status === false) {
-        return 'Aus';
-    }
-    return helligkeit === null ? 'An' : regoNumber(helligkeit) + ' %';
-}
 function regoRenderStatus(state) {
     window.regoState.Status = state;
     var button = document.getElementById('rego-onoff');
     button.className = 'onoff-button ' + (state === true ? 'onoff-button-on'
         : state === false ? 'onoff-button-off' : 'onoff-button-unknown');
     button.textContent = state === true ? 'AN' : state === false ? 'AUS' : 'unbekannt';
-    regoValue(regoText());
 }
 function regoRenderBrightness(value) {
     window.regoState.Brightness = value;
@@ -107,12 +97,13 @@ function regoRenderBrightness(value) {
         document.querySelector('#rego-dim input').value = value === null ? 0 : value;
         regoFill('rego-dim', value);
     }
-    regoValue(regoText());
+    document.getElementById('rego-dim-label').textContent =
+        value === null ? '–' : regoNumber(value) + '%';
 }
 function regoDimPreview(value) {
     window.regoDragging = true;
     regoFill('rego-dim', parseFloat(value));
-    regoValue(regoNumber(parseFloat(value)) + ' %');
+    document.getElementById('rego-dim-label').textContent = regoNumber(parseFloat(value)) + '%';
 }
 function regoDim(value) {
     window.regoDragging = false;
@@ -129,7 +120,7 @@ regoRenderStatus(window.regoState.Status);
 regoRenderBrightness(window.regoState.Brightness);
 JS;
 
-        return $this->RegoTile('dimmen', '', $controls, $script, [
+        return $this->RegoTile('dimmen', $inner, $script, [
             'Status'     => $this->CurrentStatus(),
             'Brightness' => $this->CurrentBrightness()
         ]);

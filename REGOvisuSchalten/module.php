@@ -61,8 +61,10 @@ class REGOvisuSchalten extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $controls = '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
-            . 'onclick="regoToggle()">unbekannt</button>';
+        $inner = $this->RegoButtons(
+            '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
+            . 'onclick="regoToggle()">unbekannt</button>'
+        );
 
         $script = <<<'JS'
 function regoRender(state) {
@@ -81,7 +83,7 @@ window.regoHandlers['Status'] = regoRender;
 regoRender(window.regoState.Status);
 JS;
 
-        return $this->RegoTile('schalten', '', $controls, $script, ['Status' => $this->CurrentState()]);
+        return $this->RegoTile('schalten', $inner, $script, ['Status' => $this->CurrentState()]);
     }
 
     private function CurrentState(): ?bool

@@ -102,20 +102,38 @@ trait RegoVisuTile
      * $state landet als window.regoState im HTML, $script übernimmt das
      * Zeichnen -- so ist der Startzustand ohne zweiten Rundlauf da.
      */
-    protected function RegoTile(string $type, string $value, string $controls, string $script, array $state = []): string
+    protected function RegoTile(string $type, string $inner, string $script, array $state = []): string
     {
         return $this->RegoCss()
-            . '<div class="tile"><div class="row" id="rego-row" data-type="' . $type . '">'
-            . '<span class="dot" id="rego-dot" aria-hidden="true"></span>'
-            . '<span class="row-icon" id="rego-icon">' . $this->RegoIcon($type) . '</span>'
-            . '<span class="row-main"><span class="row-value" id="rego-value">' . $value . '</span></span>'
-            . '<span class="row-ctrl">' . $controls . '</span>'
-            . '</div></div>'
+            . '<div class="tile" data-type="' . $type . '"><div class="stack">' . $inner . '</div></div>'
             . '<script>'
             . 'window.regoState = ' . json_encode($state) . ';'
             . $this->RegoBoot()
             . $script
             . '</script>';
+    }
+
+    /**
+     * Eine Zeile mit Regler und Prozentanzeige rechts.
+     */
+    protected function RegoSliderLine(string $id, string $onChange): string
+    {
+        return '<div class="line">'
+            . '<span class="chan"><span class="chan-track" id="' . $id . '">'
+            . '<span class="chan-fill"></span><span class="chan-thumb"></span>'
+            . '<input type="range" min="0" max="100" step="1" value="0" '
+            . 'oninput="' . $onChange . 'Preview(this.value)" onchange="' . $onChange . '(this.value)">'
+            . '</span></span>'
+            . '<span class="pct" id="' . $id . '-label">–</span>'
+            . '</div>';
+    }
+
+    /**
+     * Eine Reihe gleich breiter Knoepfe.
+     */
+    protected function RegoButtons(string $buttons): string
+    {
+        return '<div class="buttons">' . $buttons . '</div>';
     }
 
     /**
@@ -149,10 +167,9 @@ trait RegoVisuTile
     --bg:#f7f7f6; --surface:#ffffff; --surface-2:#f1f1ef; --surface-3:#e7e7e4; --surface-hover:#dedede;
     --border:rgba(0,0,0,.08); --border-strong:rgba(0,0,0,.16);
     --text:#1a1a1c; --text-muted:#65656d; --text-faint:#8b8b93;
-    --accent:#4d7616; --accent-hover:#3f6111; --accent-contrast:#ffffff; --accent-bg:rgba(77,118,22,.1);
+    --accent:#4d7616; --accent-contrast:#ffffff; --accent-bg:rgba(77,118,22,.1);
     --danger:#cf222e; --danger-bg:rgba(207,34,46,.1); --danger-border:rgba(207,34,46,.28);
-    --radius-md:8px; --radius-sm:6px;
-    --shadow-card:0 1px 2px rgba(0,0,0,.08);
+    --radius-lg:10px; --radius-md:8px; --radius-sm:6px;
     --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
 }
 /* Steht Symcon dunkel, nimmt die Kachel die dunkle Palette von REGObaseX1 --
@@ -161,9 +178,8 @@ trait RegoVisuTile
     --bg:#0c0c0e; --surface:#131316; --surface-2:#1a1a1e; --surface-3:#202024; --surface-hover:#232327;
     --border:rgba(255,255,255,.06); --border-strong:rgba(255,255,255,.14);
     --text:#f2f2f4; --text-muted:#86868f; --text-faint:#55555c;
-    --accent:#b9ff5c; --accent-hover:#a3ea48; --accent-contrast:#0e1a02; --accent-bg:rgba(185,255,92,.14);
+    --accent:#b9ff5c; --accent-contrast:#0e1a02; --accent-bg:rgba(185,255,92,.14);
     --danger:#f85149; --danger-bg:rgba(248,81,73,.13); --danger-border:rgba(248,81,73,.32);
-    --shadow-card:0 1px 2px rgba(0,0,0,.4);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -174,94 +190,72 @@ body{
     -webkit-tap-highlight-color:transparent; user-select:none;
     -webkit-font-smoothing:antialiased;
 }
-/* Die Kachel-Visualisierung schreibt ihre Ueberschrift ueber das iframe und
-   gibt die noetigen Abstaende als Query-Parameter mit. Die werden hier als
-   Innenabstand gesetzt -- sonst klebt der Inhalt in der Ueberschrift. Der
-   Inhalt sitzt mittig, damit er auf hohen Kacheln nicht oben festhaengt. */
+/* Die Kachel-Visualisierung schreibt Raum und Name ueber das iframe und gibt
+   die noetigen Abstaende als Query-Parameter mit -- die stehen hier als
+   Innenabstand, sonst klebt der Inhalt in der Ueberschrift. Die Kachel selbst
+   bringt keinen eigenen Rahmen mit: Symcons Karte ist schon der Rahmen. */
 .tile{
     display:flex; align-items:center; min-height:100%;
     padding:var(--pad-top,8px) var(--pad-side,8px) var(--pad-bottom,8px);
 }
+.stack{display:flex; flex-direction:column; gap:9px; width:100%}
+.line{display:flex; align-items:center; gap:12px; width:100%}
+
 button{
-    font-family:inherit; font-size:13px; font-weight:600; color:var(--text);
-    background:var(--surface-3); border:1px solid var(--border-strong);
-    border-radius:var(--radius-sm); padding:.4rem .8rem; cursor:pointer;
-    transition:background .15s ease, border-color .15s ease, opacity .15s ease;
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--text);
+    background:var(--surface-3); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:.5rem .8rem; cursor:pointer;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
 }
 button:hover:not(:disabled){background:var(--surface-hover)}
 button:disabled{opacity:.5;cursor:default}
 svg{display:block}
 
-/* Eine Zeile; die Hoehe kommt aus dem Inhalt, damit die Kachel nicht auf die
-   volle Hoehe des Kachelplatzes aufgeblasen wird. */
-.row{
-    display:flex; align-items:center; gap:10px; width:100%;
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius-md); padding:7px 10px; box-shadow:var(--shadow-card);
-}
-.row-icon{
-    width:28px; height:28px; border-radius:var(--radius-sm); flex:0 0 auto;
-    display:grid; place-items:center;
-    background:var(--surface-3); color:var(--accent);
-}
-.row-icon svg{width:16px;height:16px}
-.row-main{min-width:0; flex:0 1 auto}
-.row-value{
-    display:block; font-size:14px; font-weight:600; color:var(--text-muted);
-    font-variant-numeric:tabular-nums;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.row-ctrl{display:flex; align-items:center; gap:8px; flex:1 1 auto; justify-content:flex-end}
-.dot{display:none}
+/* Knopfreihe: gleich breit ueber die ganze Zeile, wie im Detail-Dialog */
+.buttons{display:flex; gap:8px; width:100%}
+.buttons button{flex:1 1 0; min-width:0; min-height:2.5rem}
 
-/* AN/AUS -- an ist rot, wie in REGObaseX1 */
-.onoff-button{
-    min-width:3.5rem; min-height:2rem; padding:.3rem .7rem;
-    border-radius:var(--radius-md); font-weight:700; font-size:13px; letter-spacing:.02em;
-    transition:background-color .15s ease, border-color .15s ease, color .15s ease;
-}
-.onoff-button-on{background:var(--danger-bg); border:1px solid var(--danger-border); color:var(--danger)}
-.onoff-button-off{background:var(--surface-3); border:1px solid var(--border); color:var(--text)}
-.onoff-button-unknown{background:var(--surface-3); border:1px solid var(--border); color:var(--text-faint)}
+/* AN/AUS -- an ist rot */
+.onoff-button{min-height:2.5rem; font-weight:700; letter-spacing:.02em}
+.onoff-button-on{background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger)}
+.onoff-button-off{background:var(--surface-3); border-color:var(--border); color:var(--text)}
+.onoff-button-unknown{background:var(--surface-3); border-color:var(--border); color:var(--text-faint)}
 
-/* Prozentregler mit Akzent-Griff */
-.chan{position:relative; display:flex; align-items:center; flex:1 1 auto; min-width:90px}
+/* Regler: breite Spur, grosser runder Griff in Akzentfarbe */
+.chan{position:relative; display:flex; align-items:center; flex:1 1 auto; min-width:60px}
 .chan-track{
     position:relative; flex:1 1 auto; height:10px; border-radius:999px;
-    background:var(--border-strong); cursor:pointer;
+    background:var(--surface-3); border:1px solid var(--border); cursor:pointer;
 }
-.chan-fill{position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:var(--accent)}
+.chan-fill{display:none}
 .chan-thumb{
     position:absolute; top:50%; transform:translate(-50%,-50%);
     width:26px; height:26px; border-radius:50%; background:var(--accent);
-    box-shadow:0 1px 3px rgba(0,0,0,.25);
 }
 .chan input[type=range]{
     position:absolute; inset:-12px 0; width:100%; height:auto; min-height:34px;
     margin:0; opacity:0; cursor:pointer;
     -webkit-appearance:none; appearance:none;
 }
-
-/* Auf / Stopp / Ab */
-.jalousie{display:flex; gap:6px}
-.jalousie button{min-height:2rem; padding:.3rem .6rem}
-
-/* Soll-Temperatur */
-.stepper{display:flex; align-items:center; gap:6px}
-.stepper button{width:2rem; min-height:2rem; font-size:14px; display:grid; place-items:center}
-.stepper span{font-variant-numeric:tabular-nums; font-weight:600; min-width:3.6rem; text-align:center}
-
-/* Szenen */
-.scenes{display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end}
-.scenes button{min-height:2rem}
-.scenes button.primary{
-    background:var(--accent-bg); border-color:color-mix(in srgb,var(--accent) 30%,transparent);
-    color:var(--accent); font-weight:700;
+.pct{
+    flex:0 0 auto; min-width:3.2rem; text-align:right;
+    font-size:15px; font-weight:600; color:var(--text-faint);
+    font-variant-numeric:tabular-nums;
 }
-.scenes button.primary:hover{background:var(--accent); color:var(--accent-contrast); border-color:var(--accent)}
+
+/* Klima: links der Istwert, rechts der Sollwert-Steller */
+.readout{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0}
+.readout-label{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text-muted);
+}
+.readout-value{font-size:17px; font-weight:700; font-variant-numeric:tabular-nums}
+.stepper{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+.stepper button{width:2.5rem; min-height:2.5rem; font-size:16px; display:grid; place-items:center}
+.stepper span{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; min-width:4rem; text-align:center}
 
 .muted{color:var(--text-faint); font-variant-numeric:tabular-nums}
-:focus-visible{outline:2px solid var(--accent); outline-offset:1px; border-radius:var(--radius-sm)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:var(--radius-sm)}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
 CSS;
@@ -309,13 +303,6 @@ function handleMessage(data) {
         handler(message.Value);
     }
 }
-function regoLit(on) {
-    document.getElementById('rego-row').classList.toggle('lit', on === true);
-    document.getElementById('rego-dot').classList.toggle('on', on === true);
-}
-function regoValue(text) {
-    document.getElementById('rego-value').textContent = text;
-}
 function regoNumber(value, digits) {
     return value.toFixed(digits === undefined ? 0 : digits).replace('.', ',');
 }
@@ -325,24 +312,9 @@ function regoFill(id, percent) {
         return;
     }
     var p = Math.max(0, Math.min(100, percent === null ? 0 : percent));
-    track.querySelector('.chan-fill').style.width = p + '%';
     track.querySelector('.chan-thumb').style.left = p + '%';
 }
 JS;
     }
 
-    /**
-     * Ein waagerechter Regler im Zuschnitt des Entwurfs: sichtbare Spur mit
-     * Füllung und Griff, darüber ein unsichtbarer echter Range-Slider, damit
-     * Tastatur und Touch ohne Extraarbeit funktionieren.
-     */
-    protected function RegoSlider(string $id, string $variant, string $onChange): string
-    {
-        return '<span class="chan ' . $variant . '">'
-            . '<span class="chan-track" id="' . $id . '">'
-            . '<span class="chan-fill"></span><span class="chan-thumb"></span>'
-            . '<input type="range" min="0" max="100" step="1" value="0" '
-            . 'oninput="' . $onChange . 'Preview(this.value)" onchange="' . $onChange . '(this.value)">'
-            . '</span></span>';
-    }
 }

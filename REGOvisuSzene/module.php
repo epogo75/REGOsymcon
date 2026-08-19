@@ -58,18 +58,18 @@ class REGOvisuSzene extends IPSModule
         }
 
         if (count($scenes) == 0) {
-            return $this->RegoTile('szene', 'Keine Szene hinterlegt', '', '');
+            return $this->RegoTile('szene',
+                '<div class="line"><span class="muted">Keine Szene hinterlegt</span></div>', '');
         }
 
         $buttons = '';
         foreach ($scenes as $scene) {
             $number = (int) ($scene['Number'] ?? 0);
             $label = trim((string) ($scene['Label'] ?? '')) ?: ('Szene ' . $number);
-            $buttons .= '<button type="button" class="primary" '
-                . 'onclick="requestAction(\'Scene\', ' . $number . ')">'
+            $buttons .= '<button type="button" onclick="requestAction(\'Scene\', ' . $number . ')">'
                 . htmlspecialchars($label) . '</button>';
         }
 
-        return $this->RegoTile('szene', '', '<span class="scenes">' . $buttons . '</span>', '');
+        return $this->RegoTile('szene', $this->RegoButtons($buttons), '');
     }
 }

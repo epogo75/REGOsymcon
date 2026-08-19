@@ -73,18 +73,26 @@ class REGOvisuKlima extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $controls = '<span class="stepper">'
+        // Wie im Detail-Dialog: links der Istwert, rechts der Sollwert-Steller.
+        $inner = '<div class="line">'
+            . '<span class="readout">'
+            . '<span class="readout-label">Ist</span>'
+            . '<span class="readout-value" id="rego-ist">–</span>'
+            . '</span>'
+            . '<span class="stepper">'
             . '<button type="button" aria-label="Soll-Temperatur senken" '
             . 'onclick="requestAction(\'Setpoint\', -1)">−</button>'
             . '<span id="rego-soll">–</span>'
             . '<button type="button" aria-label="Soll-Temperatur erhöhen" '
             . 'onclick="requestAction(\'Setpoint\', 1)">+</button>'
-            . '</span>';
+            . '</span>'
+            . '</div>';
 
         $script = <<<'JS'
 function regoRenderActual(value) {
     window.regoState.Actual = value;
-    regoValue(value === null ? '' : 'Ist ' + regoNumber(value, 1) + ' °C');
+    document.getElementById('rego-ist').textContent =
+        value === null ? '–' : regoNumber(value, 1) + ' °C';
 }
 function regoRenderSetpoint(value) {
     window.regoState.Setpoint = value;
@@ -97,7 +105,7 @@ regoRenderActual(window.regoState.Actual);
 regoRenderSetpoint(window.regoState.Setpoint);
 JS;
 
-        return $this->RegoTile('klima', '', $controls, $script, [
+        return $this->RegoTile('klima', $inner, $script, [
             'Actual'   => $this->CurrentActual(),
             'Setpoint' => $this->CurrentSetpoint()
         ]);
