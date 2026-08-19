@@ -5,10 +5,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RegoVisuTile.php';
 
 /**
- * Klima -- "Ist 21.5 °C" links, rechts der Stepper minus / Soll / plus.
+ * Klima -- "21,5 °C · Soll 22,0 °C", rechts minus und plus.
  *
- * Die Schrittweite von 0,5 K und das Runden auf halbe Grad sind aus
- * REGObaseX1 uebernommen (dort Math.round((soll + delta) * 2) / 2).
+ * Schrittweite 0,5 K und das Runden auf halbe Grad sind aus REGObaseX1
+ * übernommen.
  */
 class REGOvisuKlima extends IPSModule
 {
@@ -18,8 +18,6 @@ class REGOvisuKlima extends IPSModule
     {
         parent::Create();
 
-        $this->RegisterPropertyString('Title', '');
-        $this->RegisterPropertyBoolean('ShowHeader', true);
         $this->RegisterPropertyInteger('ActualVariable', 0);
         $this->RegisterPropertyInteger('SetpointVariable', 0);
         $this->RegisterPropertyInteger('SetpointFeedbackVariable', 0);
@@ -75,25 +73,23 @@ class REGOvisuKlima extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $controls =
-            '<span class="muted visu-klima-ist" id="rego-ist">Ist –</span>'
-            . '<div class="visu-klima-stepper">'
-            . '<button type="button" onclick="requestAction(\'Setpoint\', -1)">−</button>'
-            . '<span class="visu-klima-soll" id="rego-soll">–</span>'
-            . '<button type="button" onclick="requestAction(\'Setpoint\', 1)">+</button>'
-            . '</div>';
+        $controls = '<span class="stepper">'
+            . '<button type="button" aria-label="Soll-Temperatur senken" '
+            . 'onclick="requestAction(\'Setpoint\', -1)">−</button>'
+            . '<span id="rego-soll">–</span>'
+            . '<button type="button" aria-label="Soll-Temperatur erhöhen" '
+            . 'onclick="requestAction(\'Setpoint\', 1)">+</button>'
+            . '</span>';
 
         $script = <<<'JS'
-function regoTemp(value) {
-    return (value === null || value === undefined) ? '—' : value.toFixed(1) + '°C';
-}
 function regoRenderActual(value) {
     window.regoState.Actual = value;
-    document.getElementById('rego-ist').textContent = 'Ist ' + regoTemp(value);
+    regoValue(value === null ? '' : 'Ist ' + regoNumber(value, 1) + ' °C');
 }
 function regoRenderSetpoint(value) {
     window.regoState.Setpoint = value;
-    document.getElementById('rego-soll').textContent = regoTemp(value);
+    document.getElementById('rego-soll').textContent =
+        value === null ? '–' : regoNumber(value, 1) + ' °C';
 }
 window.regoHandlers['Actual'] = regoRenderActual;
 window.regoHandlers['Setpoint'] = regoRenderSetpoint;
@@ -101,7 +97,7 @@ regoRenderActual(window.regoState.Actual);
 regoRenderSetpoint(window.regoState.Setpoint);
 JS;
 
-        return $this->RegoTile('klima', $controls, $script, [
+        return $this->RegoTile('klima', '', $controls, $script, [
             'Actual'   => $this->CurrentActual(),
             'Setpoint' => $this->CurrentSetpoint()
         ]);

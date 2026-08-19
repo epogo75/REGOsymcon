@@ -1,74 +1,66 @@
 # REGOvisu
 
-Symcon-Modul mit den Visu-Elementen von **REGObaseX1** — dieselben Kacheln,
-dieselben Farben, dieselbe Bedienlogik, nur auf Symcon-Variablen statt auf einem
-Gira X1.
+Symcon-Kacheln im Design von **REGObaseX1** — dieselben Bedienelemente,
+dieselbe Palette, nur auf Symcon-Variablen statt auf einem Gira X1.
 
-Jede Kachel ist eine eigene Instanz, die auf bereits vorhandene Symcon-Variablen
-zeigt. Das Modul legt keine eigenen Variablen an und schreibt nichts, was nicht
-über einen Knopf ausgelöst wurde — es ist reine Darstellung und Bedienung.
+Jede Kachel ist eine eigene Instanz, die auf vorhandene Symcon-Variablen zeigt.
+Das Modul legt keine eigenen Variablen an und schreibt nichts, was nicht über
+einen Knopf ausgelöst wurde — es ist reine Darstellung und Bedienung.
+
+Der Funktionsname steht bewusst **nicht** in der Kachel: die
+Kachel-Visualisierung schreibt den Instanznamen selbst darüber.
 
 ## Module
 
-| Modul | Kachel | Bedienung |
-|---|---|---|
-| REGOvisu Schalten | Ein AN/AUS-Knopf | AN ist rot, AUS neutral, unbekannter Zustand blass |
-| REGOvisu Dimmen | AN/AUS-Knopf + Prozent-Slider | Slider sendet beim Loslassen, nicht während des Ziehens |
-| REGOvisu Jalousie | Auf / Stopp / Ab, optional Positions-Slider | Fahrbefehl invertierbar |
-| REGOvisu Klima | „Ist 21.5 °C" + Stepper − / Soll / + | Schrittweite und Grenzen einstellbar, Standard 0,5 K |
-| REGOvisu Szene | Eine Knopfreihe, ein Knopf je Szene | Schreibt die Szenennummer |
+| Modul | In der Kachel |
+|---|---|
+| REGOvisu Schalten | AN/AUS-Knopf, AN in Rot |
+| REGOvisu Dimmen | AN/AUS-Knopf, Prozentregler, Prozentwert |
+| REGOvisu Jalousie | Position in %, Auf / Stopp / Ab |
+| REGOvisu Klima | „Ist 21,5 °C", Stepper − / Soll / + |
+| REGOvisu Szene | Ein Knopf je Szene |
 
 ## Installation
 
-Symcon-Konsole → **Modules** (Kern-Instanzen → Modules) → **+** → URL eintragen:
+Auf einem leeren Symcon genügt **ein** Skript: `tools/regovisu_deploy.php`.
+Es installiert die Modulbibliothek selbst und baut danach alles auf:
 
-```
-https://github.com/epogo75/SymconREGOvisu
-```
+1. Modulbibliothek über die Modulverwaltung (falls noch nicht da)
+2. „Visu &lt;Projekt&gt;" mit Etagen und Räumen
+3. je Funktion ein KNX-Gerät unter „REGOdeploy > KNX-Geräte", verbunden mit
+   dem KNX Gateway
+4. in jeden Raum die passenden Kacheln, verdrahtet mit den Variablen dieser
+   Geräte
+5. den vollständigen ETS-Adresskatalog unter „REGOdeploy > KNX"
+   (abschaltbar über `$MIT_ADRESSKATALOG`)
 
-Danach unter *Instanz hinzufügen* nach `REGOvisu` suchen.
+In den Räumen stehen damit nur die Kacheln; alles Technische liegt darunter in
+„REGOdeploy".
 
-## Konfiguration
+Erneutes Ausführen ist sicher: Umbenennungen, Umzüge und geänderte Adressen
+werden nachgezogen, Objekte zu gelöschten Funktionen landen unter
+„REGOdeploy – Verwaist" statt gelöscht zu werden.
 
-Alle Module haben dieselben zwei Kopfzeilen-Einstellungen:
+### Aus REGOdeploy heraus
 
-- **Bezeichnung** — überschreibt den Instanznamen in der Kachel; leer lassen,
-  dann steht dort der Instanzname.
-- **Kopfzeile anzeigen** — Symbol und Name ein- oder ausblenden.
+Das Skript ist zugleich die Push-Vorlage von REGOdeploy
+(`backend/regodeploy/symcon/organizer_script.php`). Die fünf `CHANGE_ME`-Zeilen
+am Kopf füllt REGOdeploy beim Übertragen aus — deren Schreibweise darf sich
+deshalb nicht ändern. „Skript übertragen" und „Skript ausführen" in REGOdeploy
+erledigen damit den kompletten Aufbau.
 
-Darunter folgen je Modul die Variablen. Felder, die auf eine andere Variable
-zurückfallen können, sind im Formular entsprechend beschriftet (z. B. „Schalten
-(leer = Status-Variable)").
+Ohne REGOdeploy trägt man die fünf Werte von Hand ein; die Gateway-Instanz
+findet das Skript notfalls selbst.
 
-Geschrieben wird immer über die Aktion der Zielvariable — bei KNX-Variablen geht
-also ein echtes Telegramm auf den Bus. Nur wenn eine Variable gar keine Aktion
-hat, setzt das Modul den Wert direkt, damit auch reine Merker funktionieren.
+## Zuordnung
 
-## Kacheln automatisch anlegen (REGOdeploy)
+Nichts daran ist geraten:
 
-`tools/regovisu_deploy.php` legt zu jeder Funktion eines REGOdeploy-Projekts die
-passende Kachel an und verdrahtet sie mit den Variablen der KNX-Sammelinstanz,
-die der REGOdeploy-Symcon-Organizer erzeugt hat.
-
-Reihenfolge auf einem frischen Symcon:
-
-1. Modul installieren (Modules → **+** → Repository-URL)
-2. **REGOdeploy-Symcon-Organizer** laufen lassen — Etagen, Räume, KNX-Geräte
-3. **REGOvisu-Deploy** laufen lassen — Kacheln je Funktion
-
-Oben im Skript stehen REGOdeploy-URL, Zugang und Projekt-ID. Danach als Skript
-in Symcon anlegen und per Rechtsklick ausführen. Erneutes Ausführen ist sicher:
-Umbenennungen, Umzüge und geänderte Adressen werden nachgezogen, Kacheln zu
-gelöschten Funktionen landen unter „REGOdeploy – Verwaist" statt gelöscht zu
-werden.
-
-Die Zuordnung ist nicht geraten, sondern dreifach abgeleitet: welche Aktion zu
-welchem Bedienelement gehört, steht im Funktionenkatalog von REGOdeploy
-(`/api/funktionenkatalog`); welche Gruppenadresse dahinter liegt, kommt aus dem
-Projekt-Export; und der Variablen-Ident der Sammelinstanz ist die
-Gruppenadresse selbst (`GA_1_0_0_Value`). Rückmeldeadressen faltet der
-Organizer in ihre Primäradresse ein, deshalb zeigen Schreib- und
-Rückmelde-Eigenschaft bewusst auf dieselbe Variable.
+| Frage | Quelle |
+|---|---|
+| Welche Aktion gehört zu welchem Bedienelement? | Funktionenkatalog von REGOdeploy (`/api/funktionenkatalog`) |
+| Welche Gruppenadresse steckt dahinter? | Projekt-Export (`/export/symcon-tree`) |
+| Welche Symcon-Variable ist das? | Ident des KNX-Geräts ist die Gruppenadresse: `GA_1_0_0_Value` |
 
 | Funktionstyp | Kachel | Aktionen |
 |---|---|---|
@@ -80,29 +72,30 @@ Rückmelde-Eigenschaft bewusst auf dieselbe Variable.
 | `klima` | Klima | Ist-Temperatur, Soll-Temperatur (+ Rückmeldung) |
 | `szene` | Szene | Szene |
 
+Rückmeldeadressen faltet das Skript in ihre Primäradresse ein, deshalb zeigen
+Schreib- und Rückmelde-Eigenschaft bewusst auf dieselbe Variable.
+
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
 mit einem Typ ohne Bedienelement (`sensor`, `wetterstation`, `taster`,
-`url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung
-aufgelistet.
+`url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.
 
 ## Design
 
-Farben, Radien, Abstände und Zustandslogik stammen 1:1 aus REGObaseX1:
-
-| Token | Dunkel | Hell |
+| Rolle | Hell | Dunkel |
 |---|---|---|
-| Hintergrund Kachel | `#131316` | `#ffffff` |
-| Rahmen | `rgba(255,255,255,.06)` | `rgba(0,0,0,.08)` |
-| Text | `#f2f2f4` | `#1a1a1c` |
-| Akzent | `#b9ff5c` | `#4d7616` |
-| AN-Zustand | `#f85149` | `#cf222e` |
+| Kachelfläche | `#ffffff` | `#131316` |
+| Rahmen | `rgba(0,0,0,.08)` | `rgba(255,255,255,.06)` |
+| Text | `#1a1a1c` | `#f2f2f4` |
+| Akzent | `#4d7616` | `#b9ff5c` |
+| Eingeschaltet | `#cf222e` | `#f85149` |
 
 Hell oder dunkel entscheidet die Kachel selbst: die Kachel-Visualisierung hängt
 ihre Farben als Query-Parameter an das iframe, aus der Helligkeit von
-`cardcolor` leitet das Modul das Theme ab. Die Kachel folgt damit dem
-Symcon-Theme und nicht dem Betriebssystem.
+`cardcolor` leitet das Modul das Theme ab. Die Kachel folgt damit Symcon und
+nicht dem Betriebssystem.
 
-Schriftart ist Inter, mit System-Fallback wo Inter nicht vorhanden ist.
+Schrift ist Inter mit System-Fallback, Grundgröße 12 px. Die Zeile wächst mit
+ihrem Inhalt und füllt den Kachelplatz nicht aus.
 
 ## Voraussetzungen
 

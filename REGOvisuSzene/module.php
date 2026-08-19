@@ -5,10 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RegoVisuTile.php';
 
 /**
- * Szene -- eine Reihe gleich breiter Knoepfe, je einer pro Szene.
+ * Szene -- je Szene ein Knopf in Akzentfarbe.
  *
- * Wie in REGObaseX1 hat die Szenen-Kachel keinen Detail-Dialog und zeigt bei
- * leerer Liste "Nicht konfiguriert" statt einer leeren Flaeche.
+ * Eine einzelne Szene heißt schlicht "Starten"; bei mehreren steht auf jedem
+ * Knopf der Szenenname. Ohne konfigurierte Szene sagt die Kachel das auch,
+ * statt leer zu bleiben.
  */
 class REGOvisuSzene extends IPSModule
 {
@@ -18,8 +19,6 @@ class REGOvisuSzene extends IPSModule
     {
         parent::Create();
 
-        $this->RegisterPropertyString('Title', '');
-        $this->RegisterPropertyBoolean('ShowHeader', true);
         $this->RegisterPropertyInteger('SceneVariable', 0);
         $this->RegisterPropertyString('Scenes', '[]');
 
@@ -54,22 +53,23 @@ class REGOvisuSzene extends IPSModule
     public function GetVisualizationTile(): string
     {
         $scenes = json_decode($this->ReadPropertyString('Scenes'), true);
-        if (!is_array($scenes) || (count($scenes) == 0)) {
-            $controls = '<p class="muted visu-szene-empty">Nicht konfiguriert</p>';
-        } else {
-            $buttons = '';
-            foreach ($scenes as $scene) {
-                $label = trim((string) ($scene['Label'] ?? ''));
-                $number = (int) ($scene['Number'] ?? 0);
-                if ($label === '') {
-                    $label = 'Szene ' . $number;
-                }
-                $buttons .= '<button type="button" onclick="requestAction(\'Scene\', ' . $number . ')">'
-                    . htmlspecialchars($label) . '</button>';
-            }
-            $controls = '<div class="visu-szene-buttons">' . $buttons . '</div>';
+        if (!is_array($scenes)) {
+            $scenes = [];
         }
 
-        return $this->RegoTile('szene', $controls, '');
+        if (count($scenes) == 0) {
+            return $this->RegoTile('szene', 'Keine Szene hinterlegt', '', '');
+        }
+
+        $buttons = '';
+        foreach ($scenes as $scene) {
+            $number = (int) ($scene['Number'] ?? 0);
+            $label = trim((string) ($scene['Label'] ?? '')) ?: ('Szene ' . $number);
+            $buttons .= '<button type="button" class="primary" '
+                . 'onclick="requestAction(\'Scene\', ' . $number . ')">'
+                . htmlspecialchars($label) . '</button>';
+        }
+
+        return $this->RegoTile('szene', '', '<span class="scenes">' . $buttons . '</span>', '');
     }
 }

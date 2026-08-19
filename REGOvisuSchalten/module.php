@@ -5,10 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RegoVisuTile.php';
 
 /**
- * Schalten -- der AN/AUS-Knopf aus REGObaseX1.
+ * Schalten -- Zustand als Text, rechts der Pillen-Schalter.
  *
- * Wie dort ist AN rot (--danger) und AUS neutral; ein unbekannter Zustand
- * (Variable fehlt oder wurde noch nie beschrieben) bleibt blass statt zu luegen.
+ * Eingeschaltet glüht die Zeile bernsteinfarben, wie im Entwurf. Ein
+ * unbekannter Zustand (Variable fehlt oder wurde nie beschrieben) zeigt einen
+ * blassen Schalter statt zu behaupten, es sei aus.
  */
 class REGOvisuSchalten extends IPSModule
 {
@@ -18,8 +19,6 @@ class REGOvisuSchalten extends IPSModule
     {
         parent::Create();
 
-        $this->RegisterPropertyString('Title', '');
-        $this->RegisterPropertyBoolean('ShowHeader', true);
         $this->RegisterPropertyInteger('StatusVariable', 0);
         $this->RegisterPropertyInteger('SwitchVariable', 0);
 
@@ -82,18 +81,12 @@ window.regoHandlers['Status'] = regoRender;
 regoRender(window.regoState.Status);
 JS;
 
-        return $this->RegoTile('schalten', $controls, $script, ['Status' => $this->CurrentState()]);
+        return $this->RegoTile('schalten', '', $controls, $script, ['Status' => $this->CurrentState()]);
     }
 
-    /**
-     * true / false / null -- null heisst "kein verwertbarer Status".
-     */
     private function CurrentState(): ?bool
     {
         $value = $this->RegoValue($this->ReadPropertyInteger('StatusVariable'));
-        if ($value === null) {
-            return null;
-        }
-        return (bool) $value;
+        return $value === null ? null : (bool) $value;
     }
 }

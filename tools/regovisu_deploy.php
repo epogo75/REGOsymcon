@@ -1,31 +1,44 @@
 <?php
-// REGOvisu-Deploy
+// REGOvisu-Deploy -- ein Skript, das auf einem leeren Symcon alles aufbaut.
 //
-// Legt zu jeder Funktion eines REGOdeploy-Projekts die passende REGOvisu-
-// Kachel an und verdrahtet sie mit den Variablen der KNX-Sammelinstanz, die
-// der REGOdeploy-Symcon-Organizer erzeugt hat.
+//   1. installiert die REGOvisu-Modulbibliothek, falls sie fehlt
+//   2. "Visu <Projekt>" mit Etagen und Räumen
+//   3. je Funktion ein KNX-Gerät unter "REGOdeploy > KNX-Geräte",
+//      verbunden mit dem KNX Gateway
+//   4. in jeden Raum die passenden REGOvisu-Kacheln, verdrahtet mit den
+//      Variablen dieser KNX-Geräte
+//   5. den vollständigen ETS-Adresskatalog unter "REGOdeploy > KNX",
+//      Hauptgruppe/Mittelgruppe wie in der ETS, jede Adresse als eigenes,
+//      exakt typisiertes Gerät
 //
-// Reihenfolge auf einem frischen Symcon:
-//   1. Modul installieren (Modules -> + -> Repository-URL)
-//   2. REGOdeploy-Symcon-Organizer laufen lassen  -> Etagen, Räume, KNX-Geräte
-//   3. dieses Skript laufen lassen                -> Kacheln je Funktion
+// In den Räumen stehen damit nur die Kacheln; alles Technische liegt
+// darunter in "REGOdeploy".
 //
-// Das Skript ist idempotent: erneutes Ausführen zieht Umbenennungen,
-// Umzüge und geänderte Adressen nach. Es fasst den Organizer und dessen
-// Objekte nicht an und legt selbst keine Variablen an.
+// Erneutes Ausführen ist sicher: Umbenennungen, Umzüge und geänderte Adressen
+// werden nachgezogen; Objekte zu gelöschten Funktionen landen unter
+// "REGOdeploy – Verwaist" statt gelöscht zu werden.
 //
 // Nichts an der Zuordnung ist geraten: welche Aktion zu welchem Bedienelement
 // gehört, steht im Funktionenkatalog von REGOdeploy (/api/funktionenkatalog);
 // welche Gruppenadresse dahinter liegt, kommt aus dem Projekt-Export; und der
-// Variablen-Ident der Sammelinstanz ist die Gruppenadresse selbst
-// ("GA_1_0_0_Value"). Rückmeldungen sind im Organizer in ihre Primäradresse
-// eingefaltet ("Mapping"), deshalb landen Schreib- und Rückmelde-Eigenschaft
-// bewusst auf derselben Variable.
+// Variablen-Ident eines KNX-Geräts ist die Gruppenadresse selbst
+// ("GA_1_0_0_Value"). Rückmeldeadressen werden in ihre Primäradresse
+// eingefaltet, deshalb zeigen Schreib- und Rückmelde-Eigenschaft bewusst auf
+// dieselbe Variable.
 
-$REGODEPLOY_BASE_URL = 'http://192.168.1.229:8001';
-$REGODEPLOY_USERNAME = 'BENUTZER';
-$REGODEPLOY_PASSWORD = 'PASSWORT';
-$REGODEPLOY_PROJECT_ID = 1;
+// Diese fünf Zeilen füllt REGOdeploy beim Übertragen aus (push.py ersetzt sie
+// wörtlich) -- Schreibweise deshalb bitte nicht ändern.
+$REGODEPLOY_BASE_URL = "http://CHANGE_ME:8001";
+$REGODEPLOY_USERNAME = "CHANGE_ME";
+$REGODEPLOY_PASSWORD = "CHANGE_ME";
+$REGODEPLOY_PROJECT_ID = 0; // CHANGE_ME
+$KNX_GATEWAY_INSTANCE_ID = 0; // CHANGE_ME -- die Instanz-ID deines KNX Gateway
+
+// Den vollständigen ETS-Adresskatalog mit anlegen? Er wird für die Kacheln
+// nicht gebraucht, ist aber praktisch, um immer alles im Projekt zu haben.
+$MIT_ADRESSKATALOG = true;
+
+const REGOVISU_REPOSITORY = 'https://github.com/epogo75/SymconREGOvisu';
 
 // Modul-GUIDs der REGOvisu-Bibliothek
 const RGV_SCHALTEN = '{E5F57876-C2BE-4C9B-9D1E-237D9010ADA8}';
@@ -34,14 +47,46 @@ const RGV_JALOUSIE = '{23F455EC-9236-480B-B02F-E10CE43DBDE2}';
 const RGV_KLIMA    = '{FEB37553-F02A-4F1B-A669-15BCD71E0712}';
 const RGV_SZENE    = '{C2314D3B-F6AD-40E2-B5B7-6DB850E0AD5E}';
 
-const SAMMELINSTANZ_IDENT_PREFIX = 'regodeploy_sammelinstanz_';
-const KACHEL_IDENT_PREFIX = 'regovisu_kachel_';
+const MODULE_CONTROL_GUID = '{B8A5067A-AFC2-3798-FEDC-BCD02A45615E}';
+const KNX_GATEWAY_GUID    = '{1C902193-B044-43B8-9433-419F09C641B8}';
+const KNX_DEVICE_GUID     = '{FB223058-3084-C5D0-C7A2-3B8D2E73FE8A}';
 
-// Funktionstyp (optional "|unterart") -> Modul und Eigenschaften.
+const VISU_ROOT_IDENT   = 'regodeploy_visu_root';
+const DEPLOY_ROOT_IDENT = 'regodeploy_root';
+const ORPHAN_ROOT_IDENT = 'regodeploy_orphan_root';
+const KNX_ROOT_IDENT    = 'regodeploy_knx_root';
+const KNX_GERAETE_IDENT = 'regovisu_knx_geraete';
+
+const ETAGE_PREFIX   = 'regodeploy_etage_';
+const RAUM_PREFIX    = 'regodeploy_raum_';
+const GERAET_PREFIX  = 'regodeploy_sammelinstanz_';
+const HG_PREFIX      = 'regodeploy_hg_';
+const MG_PREFIX      = 'regodeploy_mg_';
+const GA_PREFIX      = 'regodeploy_ga_';
+const KACHEL_PREFIX  = 'regovisu_kachel_';
+
+const VERWALTETE_PREFIXE = [
+    ETAGE_PREFIX, RAUM_PREFIX, GERAET_PREFIX, HG_PREFIX, MG_PREFIX, GA_PREFIX, KACHEL_PREFIX,
+];
+const VERWALTETE_IDENTS = [
+    VISU_ROOT_IDENT, DEPLOY_ROOT_IDENT, ORPHAN_ROOT_IDENT, KNX_ROOT_IDENT, KNX_GERAETE_IDENT,
+];
+
+// Rein kosmetische Zuordnung für die "Tag"-Spalte des KNX-Geräts; sie steuert
+// nur Symcons eigene Filter und Symbole.
+const FUNKTIONSTYP_TAGS = [
+    'schalten'   => 'lighting',
+    'dimmen'     => 'lighting',
+    'jalousie'   => 'shading',
+    'temperatur' => 'heating',
+    'klima'      => 'heating',
+];
+
+// Funktionstyp (optional "|unterart") -> Kachel-Modul und Eigenschaften.
 //
 // Je Eigenschaft stehen die Aktionen in der Reihenfolge, in der sie probiert
 // werden; die Namen sind wörtlich die des REGOdeploy-Funktionenkatalogs.
-// Mehrere Kandidaten heißt nicht "irgendwas passendes suchen", sondern: die
+// Mehrere Kandidaten heißt nicht "irgendwas Passendes suchen", sondern: die
 // Rückmeldung ist die genauere Quelle, die Schaltadresse der Rückfallwert,
 // wenn das Projekt die Rückmeldung nicht pflegt.
 const KACHEL_MAPPING = [
@@ -102,6 +147,8 @@ const KACHEL_MAPPING = [
     ],
 ];
 
+// ---- Hilfsmittel ----
+
 function http_post_form($url, $data)
 {
     $ctx = stream_context_create(['http' => [
@@ -124,7 +171,7 @@ function http_get_json($url, $token)
         'method' => 'GET',
         'header' => "Authorization: Bearer $token\r\n",
         'ignore_errors' => true,
-        'timeout' => 30,
+        'timeout' => 60,
     ]]);
     $result = @file_get_contents($url, false, $ctx);
     if ($result === false) {
@@ -134,32 +181,225 @@ function http_get_json($url, $token)
 }
 
 /**
- * Sucht rekursiv alle Objekte mit einem der übergebenen Ident-Präfixe.
+ * Installiert die Modulbibliothek über die Modulverwaltung, wenn sie fehlt.
  */
-function collect_idents($parentId, $prefixes, &$index)
+function ensure_module_installed()
+{
+    if (@IPS_GetModule(RGV_SCHALTEN) !== false) {
+        return 'war schon installiert';
+    }
+
+    $control = IPS_GetInstanceListByModuleID(MODULE_CONTROL_GUID);
+    if (empty($control)) {
+        throw new Exception('Keine Modulverwaltung gefunden -- Modul bitte von Hand installieren');
+    }
+
+    MC_CreateModule($control[0], REGOVISU_REPOSITORY);
+
+    for ($i = 0; $i < 30; $i++) {
+        if (@IPS_GetModule(RGV_SCHALTEN) !== false) {
+            return 'neu installiert von ' . REGOVISU_REPOSITORY;
+        }
+        IPS_Sleep(1000);
+    }
+
+    throw new Exception('Modul geladen, aber nicht verfügbar -- Symcon neu starten und erneut ausführen');
+}
+
+function ist_verwaltet($ident)
+{
+    if (in_array($ident, VERWALTETE_IDENTS, true)) {
+        return true;
+    }
+    foreach (VERWALTETE_PREFIXE as $prefix) {
+        if (strpos($ident, $prefix) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Sammelt alle vom Skript verwalteten Objekte (Kategorien und Instanzen).
+ */
+function collect_idents($parentId, &$index)
 {
     foreach (IPS_GetChildrenIDs($parentId) as $childId) {
         $obj = IPS_GetObject($childId);
-        foreach ($prefixes as $prefix) {
-            if (strpos($obj['ObjectIdent'], $prefix) === 0) {
-                $index[$obj['ObjectIdent']] = ['id' => $childId, 'parent' => $obj['ParentID']];
-                break;
-            }
+        if (($obj['ObjectIdent'] !== '') && ist_verwaltet($obj['ObjectIdent'])) {
+            $index[$obj['ObjectIdent']] = ['id' => $childId, 'parent' => $obj['ParentID']];
         }
-        if ($obj['HasChildren']) {
-            collect_idents($childId, $prefixes, $index);
+        if ($obj['ObjectType'] === 0) {
+            collect_idents($childId, $index);
         }
     }
 }
 
+function sync_category($ident, $name, $position, $parentId, &$index, &$visited)
+{
+    $visited[$ident] = true;
+
+    if (isset($index[$ident])) {
+        $id = $index[$ident]['id'];
+        if ($index[$ident]['parent'] !== $parentId) {
+            IPS_SetParent($id, $parentId);
+            $index[$ident]['parent'] = $parentId;
+        }
+        if (IPS_GetName($id) !== $name) {
+            IPS_SetName($id, $name);
+        }
+        IPS_SetPosition($id, $position);
+        return $id;
+    }
+
+    $id = IPS_CreateCategory();
+    IPS_SetIdent($id, $ident);
+    IPS_SetName($id, $name);
+    IPS_SetParent($id, $parentId);
+    IPS_SetPosition($id, $position);
+    $index[$ident] = ['id' => $id, 'parent' => $parentId];
+    return $id;
+}
+
+function funktionstyp_tag($funktionstyp)
+{
+    return FUNKTIONSTYP_TAGS[$funktionstyp] ?? 'unknown';
+}
+
 /**
- * Aktion -> Variablen-ID in der Sammelinstanz.
- *
- * Die Aktion kann eine Primäradresse sein oder eine Rückmeldung, die der
- * Organizer in ihre Primäradresse eingefaltet hat -- in beiden Fällen ist die
- * Variable die der Primäradresse.
+ * Eine GroupAddresses-Zeile je Primäradresse; Rückmeldungen werden als
+ * "Mapping" in ihre Primäradresse eingefaltet. Type/Dimension sind Haupt- und
+ * Nebennummer der DPT, so wie das KNX-Gerät sie erwartet.
  */
-function variable_for_aktion($funktion, $aktion, $sammelinstanzId)
+function build_group_addresses($funktion)
+{
+    $rows = [];
+    foreach ($funktion['adressen'] as $adresse) {
+        $parts = explode('.', (string) $adresse['dpt_id'], 2);
+        if ((count($parts) !== 2) || !is_numeric($parts[0]) || !is_numeric($parts[1])) {
+            continue;
+        }
+        list($h, $m, $s) = array_map('intval', explode('/', $adresse['group_address']));
+
+        $mapping = [];
+        foreach ($adresse['feedback_addresses'] as $fb) {
+            list($fh, $fm, $fs) = array_map('intval', explode('/', $fb['group_address']));
+            $mapping[] = ['Address1' => $fh, 'Address2' => $fm, 'Address3' => $fs];
+        }
+
+        $rows[] = [
+            'Address1' => $h, 'Address2' => $m, 'Address3' => $s,
+            'Type' => (int) $parts[0], 'Dimension' => (int) $parts[1],
+            'Tag' => funktionstyp_tag($funktion['funktionstyp']),
+            'SubTag' => (strpos($adresse['aktion'], 'ammellenposition') !== false) ? 'lamella' : '',
+            'InitialName' => $adresse['aktion'],
+            'Mapping' => $mapping,
+            'CapabilityRead' => false, 'CapabilityWrite' => true, 'CapabilityReceive' => true,
+            'CapabilityTransmit' => false, 'EmulateStatus' => true,
+        ];
+    }
+    return $rows;
+}
+
+/**
+ * Das KNX-Gerät einer Funktion: alle aktiven Adressen in einer Instanz.
+ */
+function sync_geraet($funktion, $parentId, $gatewayId, &$index, &$visited)
+{
+    $rows = build_group_addresses($funktion);
+    if (empty($rows)) {
+        return [0, 'leer'];
+    }
+
+    $ident = GERAET_PREFIX . $funktion['id'];
+    $visited[$ident] = true;
+    $desired = json_encode($rows);
+    $neu = false;
+
+    if (isset($index[$ident])) {
+        $id = $index[$ident]['id'];
+        if ($index[$ident]['parent'] !== $parentId) {
+            IPS_SetParent($id, $parentId);
+            $index[$ident]['parent'] = $parentId;
+        }
+    } else {
+        $id = IPS_CreateInstance(KNX_DEVICE_GUID);
+        IPS_SetIdent($id, $ident);
+        IPS_SetParent($id, $parentId);
+        $index[$ident] = ['id' => $id, 'parent' => $parentId];
+        $neu = true;
+    }
+
+    $current = json_decode(IPS_GetConfiguration($id), true);
+    if (($current['GroupAddresses'] ?? '[]') !== $desired) {
+        IPS_SetProperty($id, 'GroupAddresses', $desired);
+        IPS_ApplyChanges($id);
+    }
+    if (IPS_GetName($id) !== $funktion['name']) {
+        IPS_SetName($id, $funktion['name']);
+    }
+    if (IPS_GetInstance($id)['ConnectionID'] !== $gatewayId) {
+        IPS_ConnectInstance($id, $gatewayId);
+    }
+
+    return [$id, $neu ? 'neu' : 'vorhanden'];
+}
+
+/**
+ * Eine einzelne Gruppenadresse des ETS-Katalogs als exakt typisiertes Gerät.
+ */
+function sync_gruppenadresse($adresse, $parentId, $gatewayId, &$index, &$visited)
+{
+    if (($adresse['symcon_module_id'] === null) || ($adresse['symcon_dimension'] === null)) {
+        return 'übersprungen';
+    }
+
+    list($h, $m, $s) = array_map('intval', explode('/', $adresse['group_address']));
+    $ident = sprintf('%s%d_%d_%d', GA_PREFIX, $h, $m, $s);
+    $visited[$ident] = true;
+
+    if (isset($index[$ident])) {
+        $id = $index[$ident]['id'];
+        if ($index[$ident]['parent'] !== $parentId) {
+            IPS_SetParent($id, $parentId);
+            $index[$ident]['parent'] = $parentId;
+        }
+        $neu = false;
+    } else {
+        $id = IPS_CreateInstance($adresse['symcon_module_id']);
+        IPS_SetProperty($id, 'Address1', $h);
+        IPS_SetProperty($id, 'Address2', $m);
+        IPS_SetProperty($id, 'Address3', $s);
+        IPS_SetProperty($id, 'Dimension', $adresse['symcon_dimension']);
+        IPS_SetProperty($id, 'CapabilityRead', false);
+        IPS_SetProperty($id, 'CapabilityWrite', true);
+        IPS_SetProperty($id, 'CapabilityReceive', true);
+        IPS_SetProperty($id, 'CapabilityTransmit', false);
+        IPS_SetProperty($id, 'EmulateStatus', true);
+        IPS_ApplyChanges($id);
+        IPS_SetIdent($id, $ident);
+        IPS_SetParent($id, $parentId);
+        $index[$ident] = ['id' => $id, 'parent' => $parentId];
+        $neu = true;
+    }
+
+    if (IPS_GetName($id) !== $adresse['name']) {
+        IPS_SetName($id, $adresse['name']);
+    }
+    if (IPS_GetInstance($id)['ConnectionID'] !== $gatewayId) {
+        IPS_ConnectInstance($id, $gatewayId);
+    }
+
+    return $neu ? 'neu' : 'vorhanden';
+}
+
+/**
+ * Aktion -> Variablen-ID im KNX-Gerät.
+ *
+ * Die Aktion kann eine Primäradresse sein oder eine eingefaltete Rückmeldung;
+ * in beiden Fällen ist die Variable die der Primäradresse.
+ */
+function variable_for_aktion($funktion, $aktion, $geraetId)
 {
     foreach ($funktion['adressen'] as $adresse) {
         $treffer = ($adresse['aktion'] === $aktion);
@@ -176,14 +416,27 @@ function variable_for_aktion($funktion, $aktion, $sammelinstanzId)
         }
 
         list($h, $m, $s) = array_map('intval', explode('/', $adresse['group_address']));
-        $ident = sprintf('GA_%d_%d_%d_Value', $h, $m, $s);
-        $varId = @IPS_GetObjectIDByIdent($ident, $sammelinstanzId);
+        $varId = @IPS_GetObjectIDByIdent(sprintf('GA_%d_%d_%d_Value', $h, $m, $s), $geraetId);
         return ($varId === false) ? 0 : $varId;
     }
     return 0;
 }
 
 // ---- Ablauf ----
+
+$modulStatus = ensure_module_installed();
+
+// Gateway: die von REGOdeploy konfigurierte Instanz, sonst die einzige im
+// System -- so läuft das Skript auch auf einem Symcon, das REGOdeploy noch
+// nicht kennt.
+$gatewayId = $KNX_GATEWAY_INSTANCE_ID;
+if (($gatewayId == 0) || !IPS_InstanceExists($gatewayId)) {
+    $gateways = IPS_GetInstanceListByModuleID(KNX_GATEWAY_GUID);
+    if (empty($gateways)) {
+        throw new Exception('Kein KNX Gateway in Symcon -- bitte zuerst eine KNX-Gateway-Instanz anlegen');
+    }
+    $gatewayId = $gateways[0];
+}
 
 $login = http_post_form("$REGODEPLOY_BASE_URL/api/auth/login", [
     'username' => $REGODEPLOY_USERNAME,
@@ -206,31 +459,57 @@ foreach (http_get_json("$REGODEPLOY_BASE_URL/api/funktionen?project_id=$REGODEPL
     $meta[$f['id']] = $f;
 }
 
-$sammelIndex = [];
-$kachelIndex = [];
-collect_idents(0, [SAMMELINSTANZ_IDENT_PREFIX, KACHEL_IDENT_PREFIX], $sammelIndex);
-foreach ($sammelIndex as $ident => $info) {
-    if (strpos($ident, KACHEL_IDENT_PREFIX) === 0) {
-        $kachelIndex[$ident] = $info;
-    }
+$index = [];
+collect_idents(0, $index);
+$visited = [];
+
+$visuId    = sync_category(VISU_ROOT_IDENT, 'Visu ' . $tree['project_name'], 0, 0, $index, $visited);
+$rootId    = sync_category(DEPLOY_ROOT_IDENT, 'REGOdeploy', 1, 0, $index, $visited);
+$geraeteId = sync_category(KNX_GERAETE_IDENT, 'KNX-Geräte', 0, $rootId, $index, $visited);
+
+// Das laufende Skript legt sich selbst in den REGOdeploy-Ordner.
+if (isset($_IPS['SELF']) && IPS_ObjectExists($_IPS['SELF'])
+    && (IPS_GetObject($_IPS['SELF'])['ParentID'] !== $rootId)) {
+    IPS_SetParent($_IPS['SELF'], $rootId);
 }
 
-$created = 0;
-$updated = 0;
-$unchanged = 0;
-$visited = [];
-$skipped = [];
+$kachelnNeu = 0;
+$kachelnAktualisiert = 0;
+$kachelnUnveraendert = 0;
+$geraeteNeu = 0;
+$geraeteVorhanden = 0;
+$raeume = 0;
+$hinweise = [];
 
 foreach ($tree['etagen'] as $etage) {
-    foreach ($etage['raeume'] as $raum) {
-        foreach ($raum['funktionen'] as $funktion) {
-            $id = $funktion['id'];
-            $bezeichnung = $raum['name'] . ' / ' . $funktion['name'];
+    $etageId = sync_category(ETAGE_PREFIX . $etage['id'], $etage['name'], $etage['sort_order'], $visuId, $index, $visited);
 
-            $info = $meta[$id] ?? null;
+    foreach ($etage['raeume'] as $raum) {
+        $raumId = sync_category(RAUM_PREFIX . $raum['id'], $raum['name'], $raum['sort_order'], $etageId, $index, $visited);
+        $raeume++;
+
+        foreach ($raum['funktionen'] as $funktion) {
+            $bezeichnung = $raum['name'] . ' / ' . $funktion['name'];
+            $info = $meta[$funktion['id']] ?? null;
+
             if (($info !== null) && !$info['visu_sichtbar']) {
-                $skipped[] = "$bezeichnung: in REGOdeploy nicht für die Visu freigegeben";
+                $hinweise[] = "$bezeichnung: in REGOdeploy nicht für die Visu freigegeben";
                 continue;
+            }
+            if (empty($funktion['adressen'])) {
+                $hinweise[] = "$bezeichnung: in REGOdeploy sind keine Gruppenadressen hinterlegt";
+                continue;
+            }
+
+            list($geraetId, $geraetStatus) = sync_geraet($funktion, $geraeteId, $gatewayId, $index, $visited);
+            if ($geraetId == 0) {
+                $hinweise[] = "$bezeichnung: keine Adresse mit gültiger DPT";
+                continue;
+            }
+            if ($geraetStatus === 'neu') {
+                $geraeteNeu++;
+            } else {
+                $geraeteVorhanden++;
             }
 
             $unterart = ($info['unterart'] ?? '') ?: '';
@@ -239,148 +518,179 @@ foreach ($tree['etagen'] as $etage) {
                 : $funktion['funktionstyp'];
 
             if (!isset(KACHEL_MAPPING[$key])) {
-                $skipped[] = "$bezeichnung: Funktionstyp '$key' hat kein Bedienelement in REGObaseX1";
+                $hinweise[] = "$bezeichnung: Funktionstyp '$key' hat kein Bedienelement";
                 continue;
             }
             $mapping = KACHEL_MAPPING[$key];
-
-            if (empty($funktion['adressen'])) {
-                $skipped[] = "$bezeichnung: in REGOdeploy sind keine Gruppenadressen hinterlegt";
-                continue;
-            }
-
-            $sammelIdent = SAMMELINSTANZ_IDENT_PREFIX . $id;
-            if (!isset($sammelIndex[$sammelIdent])) {
-                $skipped[] = "$bezeichnung: keine KNX-Sammelinstanz -- erst den REGOdeploy-Organizer laufen lassen";
-                continue;
-            }
-            $sammelId = $sammelIndex[$sammelIdent]['id'];
-            $raumCatId = IPS_GetObject($sammelId)['ParentID'];
 
             $werte = [];
             $fehlend = [];
             foreach ($mapping['props'] as $property => $aktionen) {
                 $varId = 0;
                 foreach ($aktionen as $aktion) {
-                    $varId = variable_for_aktion($funktion, $aktion, $sammelId);
+                    $varId = variable_for_aktion($funktion, $aktion, $geraetId);
                     if ($varId != 0) {
                         break;
                     }
                 }
                 if ($varId == 0) {
-                    $fehlend[] = $property . ' (' . implode(' / ', $aktionen) . ')';
+                    $fehlend[] = $property;
                 }
                 $werte[$property] = $varId;
             }
 
             if (count($fehlend) === count($mapping['props'])) {
-                $skipped[] = "$bezeichnung: keine der benötigten Adressen ist in Symcon aktiv";
+                $hinweise[] = "$bezeichnung: keine der benötigten Adressen ist in Symcon aktiv";
                 continue;
             }
 
-            $kachelIdent = KACHEL_IDENT_PREFIX . $id;
+            $kachelIdent = KACHEL_PREFIX . $funktion['id'];
             $visited[$kachelIdent] = true;
-            $changed = false;
+            $geaendert = false;
+            $neu = false;
 
-            if (isset($kachelIndex[$kachelIdent])) {
-                $kachelId = $kachelIndex[$kachelIdent]['id'];
-                $isNew = false;
+            if (isset($index[$kachelIdent])) {
+                $kachelId = $index[$kachelIdent]['id'];
                 if (IPS_GetInstance($kachelId)['ModuleInfo']['ModuleID'] !== $mapping['module']) {
-                    // Funktionstyp in REGOdeploy geändert -- die alte Kachel
-                    // passt nicht mehr und wird durch die richtige ersetzt.
+                    // Funktionstyp geändert -- die alte Kachel passt nicht mehr.
                     IPS_DeleteInstance($kachelId);
-                    unset($kachelIndex[$kachelIdent]);
-                } else {
-                    if (IPS_GetObject($kachelId)['ParentID'] !== $raumCatId) {
-                        IPS_SetParent($kachelId, $raumCatId);
-                        $changed = true;
-                    }
+                    unset($index[$kachelIdent]);
+                } elseif ($index[$kachelIdent]['parent'] !== $raumId) {
+                    IPS_SetParent($kachelId, $raumId);
+                    $index[$kachelIdent]['parent'] = $raumId;
+                    $geaendert = true;
                 }
             }
 
-            if (!isset($kachelIndex[$kachelIdent])) {
+            if (!isset($index[$kachelIdent])) {
                 $kachelId = IPS_CreateInstance($mapping['module']);
                 IPS_SetIdent($kachelId, $kachelIdent);
-                IPS_SetParent($kachelId, $raumCatId);
-                $kachelIndex[$kachelIdent] = ['id' => $kachelId, 'parent' => $raumCatId];
-                $isNew = true;
+                IPS_SetParent($kachelId, $raumId);
+                $index[$kachelIdent] = ['id' => $kachelId, 'parent' => $raumId];
+                $neu = true;
             }
 
             $current = json_decode(IPS_GetConfiguration($kachelId), true);
-            $needsApply = false;
+            $apply = false;
             foreach ($werte as $property => $varId) {
                 if (($current[$property] ?? 0) !== $varId) {
                     IPS_SetProperty($kachelId, $property, $varId);
-                    $needsApply = true;
+                    $apply = true;
                 }
             }
-            if ($needsApply) {
+            if ($apply) {
                 IPS_ApplyChanges($kachelId);
-                $changed = true;
+                $geaendert = true;
             }
-
             if (IPS_GetName($kachelId) !== $funktion['name']) {
                 IPS_SetName($kachelId, $funktion['name']);
-                $changed = true;
+                $geaendert = true;
             }
-            IPS_SetPosition($kachelId, 100 + $funktion['sort_order']);
+            IPS_SetPosition($kachelId, $funktion['sort_order']);
 
-            if ($isNew) {
-                $created++;
-            } elseif ($changed) {
-                $updated++;
+            if ($neu) {
+                $kachelnNeu++;
+            } elseif ($geaendert) {
+                $kachelnAktualisiert++;
             } else {
-                $unchanged++;
+                $kachelnUnveraendert++;
             }
 
             if (!empty($fehlend)) {
-                $skipped[] = "$bezeichnung: Kachel angelegt, aber ohne " . implode(', ', $fehlend);
+                $hinweise[] = "$bezeichnung: Kachel angelegt, aber ohne " . implode(', ', $fehlend);
             }
         }
     }
 }
 
-// Kacheln zu Funktionen, die es nicht mehr gibt: einsammeln statt löschen,
-// gleiche Regel wie beim Organizer.
+// Vollständiger ETS-Adresskatalog
+$gaNeu = 0;
+$gaVorhanden = 0;
+$gaUebersprungen = 0;
+
+if ($MIT_ADRESSKATALOG && isset($tree['gruppenadressen'])) {
+    $knxId = sync_category(KNX_ROOT_IDENT, 'KNX', 1, $rootId, $index, $visited);
+
+    foreach ($tree['gruppenadressen'] as $hauptgruppe) {
+        $hgId = sync_category(
+            HG_PREFIX . $hauptgruppe['hauptgruppe'],
+            $hauptgruppe['name'],
+            $hauptgruppe['hauptgruppe'],
+            $knxId,
+            $index,
+            $visited
+        );
+
+        foreach ($hauptgruppe['mittelgruppen'] as $mittelgruppe) {
+            $mgId = sync_category(
+                MG_PREFIX . $hauptgruppe['hauptgruppe'] . '_' . $mittelgruppe['mittelgruppe'],
+                $mittelgruppe['name'],
+                $mittelgruppe['mittelgruppe'],
+                $hgId,
+                $index,
+                $visited
+            );
+
+            foreach ($mittelgruppe['adressen'] as $adresse) {
+                switch (sync_gruppenadresse($adresse, $mgId, $gatewayId, $index, $visited)) {
+                    case 'neu':
+                        $gaNeu++;
+                        break;
+                    case 'vorhanden':
+                        $gaVorhanden++;
+                        break;
+                    default:
+                        $gaUebersprungen++;
+                }
+            }
+        }
+    }
+}
+
+// Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
 $verwaist = [];
-foreach ($kachelIndex as $ident => $info) {
+foreach ($index as $ident => $info) {
     if (!isset($visited[$ident])) {
         $verwaist[$ident] = $info;
     }
 }
 
-$verwaistVerschoben = 0;
-if (!empty($verwaist)) {
-    $orphanRootId = @IPS_GetObjectIDByIdent('regodeploy_orphan_root', 0);
-    if ($orphanRootId === false) {
-        $rootId = @IPS_GetObjectIDByIdent('regodeploy_root', 0);
-        if ($rootId !== false) {
-            $orphanRootId = @IPS_GetObjectIDByIdent('regodeploy_orphan_root', $rootId);
-        }
+$verwaistIds = [];
+foreach ($verwaist as $info) {
+    $verwaistIds[$info['id']] = true;
+}
+
+$verschoben = 0;
+$orphanRootId = null;
+foreach ($verwaist as $ident => $info) {
+    if (isset($verwaistIds[$info['parent']])) {
+        // Der Vater ist selbst verwaist und nimmt dieses Objekt mit.
+        continue;
     }
-    if ($orphanRootId !== false) {
-        foreach ($verwaist as $info) {
-            if ($info['parent'] !== $orphanRootId) {
-                IPS_SetParent($info['id'], $orphanRootId);
-                $verwaistVerschoben++;
-            }
-        }
+    if ($orphanRootId === null) {
+        $orphanRootId = sync_category(ORPHAN_ROOT_IDENT, 'REGOdeploy – Verwaist', 2, $rootId, $index, $visited);
+    }
+    if ($info['parent'] !== $orphanRootId) {
+        IPS_SetParent($info['id'], $orphanRootId);
+        $verschoben++;
     }
 }
 
-echo sprintf(
-    "REGOvisu-Deploy fertig: %d Kacheln neu, %d aktualisiert, %d unverändert, %d übersprungen, %d verwaist (%d verschoben).\n",
-    $created,
-    $updated,
-    $unchanged,
-    count($skipped),
-    count($verwaist),
-    $verwaistVerschoben
-);
+echo "REGOvisu-Deploy fertig.\n";
+echo "  Modul:    $modulStatus\n";
+echo sprintf("  Struktur: %d Räume unter \"Visu %s\"\n", $raeume, $tree['project_name']);
+echo sprintf("  KNX:      %d Geräte neu, %d vorhanden\n", $geraeteNeu, $geraeteVorhanden);
+echo sprintf("  Kacheln:  %d neu, %d aktualisiert, %d unverändert\n",
+    $kachelnNeu, $kachelnAktualisiert, $kachelnUnveraendert);
+if ($MIT_ADRESSKATALOG) {
+    echo sprintf("  Katalog:  %d Adressen neu, %d vorhanden, %d ohne Symcon-Zuordnung\n",
+        $gaNeu, $gaVorhanden, $gaUebersprungen);
+}
+echo sprintf("  Verwaist: %d Objekte (%d verschoben)\n", count($verwaist), $verschoben);
 
-if (!empty($skipped)) {
+if (!empty($hinweise)) {
     echo "\nHinweise:\n";
-    foreach ($skipped as $line) {
-        echo "  - $line\n";
+    foreach ($hinweise as $zeile) {
+        echo "  - $zeile\n";
     }
 }

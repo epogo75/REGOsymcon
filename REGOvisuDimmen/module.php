@@ -5,12 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RegoVisuTile.php';
 
 /**
- * Dimmen -- AN/AUS-Knopf plus Prozent-Slider, genau die Kombination, die
- * REGObaseX1 fuer den Funktionstyp "dimmen" zeigt (dort "Dimmen absolut" zum
- * Schreiben, "Zustandswert" als Rueckmeldung).
+ * Dimmen -- Zustand als Text, rechts ein schmaler Helligkeitsregler und der
+ * Pillen-Schalter.
  *
- * Der Slider meldet erst beim Loslassen (change), waehrend des Ziehens laeuft
- * nur die Beschriftung mit -- sonst haengt bei jedem Pixel ein Telegramm am Bus.
+ * Der Regler meldet erst beim Loslassen; während des Ziehens läuft nur die
+ * Anzeige mit, sonst hängt an jedem Pixel ein Telegramm.
  */
 class REGOvisuDimmen extends IPSModule
 {
@@ -20,8 +19,6 @@ class REGOvisuDimmen extends IPSModule
     {
         parent::Create();
 
-        $this->RegisterPropertyString('Title', '');
-        $this->RegisterPropertyBoolean('ShowHeader', true);
         $this->RegisterPropertyInteger('StatusVariable', 0);
         $this->RegisterPropertyInteger('SwitchVariable', 0);
         $this->RegisterPropertyInteger('BrightnessVariable', 0);
@@ -67,7 +64,7 @@ class REGOvisuDimmen extends IPSModule
                 if ($target == 0) {
                     $target = $this->ReadPropertyInteger('BrightnessVariable');
                 }
-                $this->RegoWrite($target, $this->CastToVariable($target, (float) $Value));
+                $this->RegoWrite($target, $this->RegoCastNumber($target, (float) $Value));
                 break;
 
             default:
@@ -79,14 +76,10 @@ class REGOvisuDimmen extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $controls =
-            '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
+        $controls = '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
             . 'onclick="regoToggle()">unbekannt</button>'
-            . '<div class="percent-slider">'
-            . '<input type="range" id="rego-dim" min="0" max="100" step="1" value="0" '
-            . 'oninput="regoDimPreview(this.value)" onchange="regoDim(this.value)">'
-            . '<span class="muted" id="rego-dim-label">–</span>'
-            . '</div>';
+            . $this->RegoSlider('rego-dim', '', 'regoDim')
+            . '<span class="muted" id="rego-dim-label">–</span>';
 
         $script = <<<'JS'
 function regoRenderStatus(state) {
@@ -98,15 +91,17 @@ function regoRenderStatus(state) {
 }
 function regoRenderBrightness(value) {
     window.regoState.Brightness = value;
-    var slider = document.getElementById('rego-dim');
     if (!window.regoDragging) {
-        slider.value = value === null ? 0 : value;
+        document.querySelector('#rego-dim input').value = value === null ? 0 : value;
+        regoFill('rego-dim', value);
     }
-    document.getElementById('rego-dim-label').textContent = value === null ? '–' : Math.round(value) + ' %';
+    document.getElementById('rego-dim-label').textContent =
+        value === null ? '–' : regoNumber(value) + ' %';
 }
 function regoDimPreview(value) {
     window.regoDragging = true;
-    document.getElementById('rego-dim-label').textContent = Math.round(value) + ' %';
+    regoFill('rego-dim', parseFloat(value));
+    document.getElementById('rego-dim-label').textContent = regoNumber(parseFloat(value)) + ' %';
 }
 function regoDim(value) {
     window.regoDragging = false;
@@ -123,7 +118,7 @@ regoRenderStatus(window.regoState.Status);
 regoRenderBrightness(window.regoState.Brightness);
 JS;
 
-        return $this->RegoTile('dimmen', $controls, $script, [
+        return $this->RegoTile('dimmen', '', $controls, $script, [
             'Status'     => $this->CurrentStatus(),
             'Brightness' => $this->CurrentBrightness()
         ]);
@@ -133,7 +128,7 @@ JS;
     {
         $value = $this->RegoValue($this->ReadPropertyInteger('StatusVariable'));
         if ($value === null) {
-            // Ohne eigene Status-Rueckmeldung gilt "Helligkeit > 0" als an.
+            // Ohne eigene Rückmeldung gilt "Helligkeit über 0" als an.
             $brightness = $this->CurrentBrightness();
             return $brightness === null ? null : ($brightness > 0);
         }
@@ -148,20 +143,6 @@ JS;
         }
         $value = $this->RegoValue($source);
         return $value === null ? null : (float) $value;
-    }
-
-    /**
-     * KNX-Dimmwerte liegen je nach Datenpunkt als Integer (0..100) oder als
-     * Float vor -- ohne Anpassung lehnt Symcon das Schreiben ab.
-     */
-    private function CastToVariable(int $variableID, float $value)
-    {
-        if (($variableID != 0) && IPS_VariableExists($variableID)) {
-            if (IPS_GetVariable($variableID)['VariableType'] == 1) {
-                return (int) round($value);
-            }
-        }
-        return $value;
     }
 
     private function PushState(): void
