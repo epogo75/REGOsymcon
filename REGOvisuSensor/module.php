@@ -34,7 +34,8 @@ class REGOvisuSensor extends IPSModule
         $this->RegisterPropertyString('SecondaryTextFalse', 'Nein');
         $this->RegisterPropertyInteger('BatteryVariable', 0);
 
-        $this->SetVisualizationType(1);
+        // 2 = auch im Vollbild rendern; dort ist Platz fuer den Verlauf.
+        $this->SetVisualizationType(2);
     }
 
     public function ApplyChanges(): void
@@ -63,7 +64,8 @@ class REGOvisuSensor extends IPSModule
             . '<span class="sensor-value" id="rego-wert">–</span>'
             . '<span class="sensor-unit" id="rego-einheit"></span>'
             . '</div>'
-            . '<div class="badges" id="rego-badges"></div>';
+            . '<div class="badges" id="rego-badges"></div>'
+            . $this->RegoChart($this->ReadPropertyInteger('ValueVariable'));
 
         $script = <<<'JS'
 function regoRenderReading(daten) {

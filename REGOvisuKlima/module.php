@@ -25,7 +25,8 @@ class REGOvisuKlima extends IPSModule
         $this->RegisterPropertyFloat('MinValue', 5);
         $this->RegisterPropertyFloat('MaxValue', 30);
 
-        $this->SetVisualizationType(1);
+        // 2 = auch im Vollbild rendern; dort ist Platz fuer den Verlauf.
+        $this->SetVisualizationType(2);
     }
 
     public function ApplyChanges(): void
@@ -86,7 +87,8 @@ class REGOvisuKlima extends IPSModule
             . '<button type="button" aria-label="Soll-Temperatur erhöhen" '
             . 'onclick="requestAction(\'Setpoint\', 1)">+</button>'
             . '</span>'
-            . '</div>';
+            . '</div>'
+            . $this->RegoChart($this->ReadPropertyInteger('ActualVariable'));
 
         $script = <<<'JS'
 function regoRenderActual(value) {

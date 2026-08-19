@@ -131,6 +131,79 @@ trait RegoVisuTile
     }
 
     /**
+     * Zeichnet den Verlauf einer Variable als SVG -- Fläche mit Linie, dazu
+     * Minimum und Maximum an der Achse.
+     *
+     * Symcon liefert die Werte ueber die Archive-Instanz; ohne Aufzeichnung
+     * oder ohne Werte im Zeitraum bleibt eine Notiz statt eines leeren Bildes.
+     */
+    protected function RegoChart(int $variableID, int $stunden = 24): string
+    {
+        if (($variableID == 0) || !IPS_VariableExists($variableID)) {
+            return '';
+        }
+
+        $archive = IPS_GetInstanceListByModuleID('{43192F0B-135B-4CE7-A0A7-1475603F3060}');
+        if (empty($archive) || !AC_GetLoggingStatus($archive[0], $variableID)) {
+            return '<div class="chart"><div class="chart-leer">Keine Aufzeichnung aktiv</div></div>';
+        }
+
+        $bis = time();
+        $von = $bis - ($stunden * 3600);
+        $werte = AC_GetLoggedValues($archive[0], $variableID, $von, $bis, 0);
+        if (count($werte) < 2) {
+            return '<div class="chart"><div class="chart-leer">Noch keine Werte im Zeitraum</div></div>';
+        }
+
+        // Aeltester Wert zuerst
+        $punkte = [];
+        foreach (array_reverse($werte) as $eintrag) {
+            $punkte[] = ['t' => (int) $eintrag['TimeStamp'], 'v' => (float) $eintrag['Value']];
+        }
+
+        $min = $max = $punkte[0]['v'];
+        foreach ($punkte as $punkt) {
+            $min = min($min, $punkt['v']);
+            $max = max($max, $punkt['v']);
+        }
+        if ($max - $min < 0.0001) {
+            $max = $min + 1;
+        }
+
+        $breite = 300;
+        $hoehe = 90;
+        $spanne = max(1, $bis - $von);
+
+        $koordinaten = [];
+        foreach ($punkte as $punkt) {
+            $x = round(($punkt['t'] - $von) / $spanne * $breite, 2);
+            $y = round($hoehe - (($punkt['v'] - $min) / ($max - $min) * $hoehe), 2);
+            $koordinaten[] = $x . ',' . $y;
+        }
+
+        $linie = implode(' ', $koordinaten);
+        $flaeche = '0,' . $hoehe . ' ' . $linie . ' ' . $breite . ',' . $hoehe;
+
+        return '<div class="chart">'
+            . '<svg viewBox="0 0 ' . $breite . ' ' . $hoehe . '" preserveAspectRatio="none" '
+            . 'role="img" aria-label="Verlauf der letzten ' . $stunden . ' Stunden">'
+            . '<line class="chart-grid" x1="0" y1="' . $hoehe . '" x2="' . $breite . '" y2="' . $hoehe . '"/>'
+            . '<polygon class="chart-area" points="' . $flaeche . '"/>'
+            . '<polyline class="chart-line" points="' . $linie . '" vector-effect="non-scaling-stroke"/>'
+            . '</svg>'
+            . '<div style="display:flex;justify-content:space-between">'
+            . '<span class="chart-achse">' . $this->RegoZahl($min) . '</span>'
+            . '<span class="chart-achse">' . $stunden . ' h</span>'
+            . '<span class="chart-achse">' . $this->RegoZahl($max) . '</span>'
+            . '</div></div>';
+    }
+
+    protected function RegoZahl(float $wert): string
+    {
+        return str_replace('.', ',', (string) round($wert, 1));
+    }
+
+    /**
      * Eine Reihe gleich breiter Knoepfe.
      */
     protected function RegoButtons(string $buttons): string
@@ -262,6 +335,20 @@ svg{display:block}
     font-variant-numeric:tabular-nums;
 }
 .badge-danger{background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger)}
+
+/* Verlauf: in der Kachel versteckt, sichtbar sobald sie aufgeklappt ist --
+   dann ist das iframe hoch genug. Symcon kennt keinen Schalter dafuer, die
+   Hoehe ist das einzige verlaessliche Unterscheidungsmerkmal. */
+.chart{display:none}
+@media (min-height: 260px){
+    .chart{display:block; width:100%; margin-top:.35rem}
+    .chart svg{width:100%; height:auto; display:block; overflow:visible}
+    .chart-line{fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
+    .chart-area{fill:var(--accent-bg); stroke:none}
+    .chart-grid{stroke:var(--border); stroke-width:1}
+    .chart-achse{fill:var(--text-faint); font-size:9px; font-variant-numeric:tabular-nums}
+    .chart-leer{color:var(--text-faint); font-size:.8rem; padding:.5rem 0}
+}
 
 /* Werteraster: mehrere Messwerte nebeneinander, jeder mit Beschriftung */
 .werte{display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; width:100%}

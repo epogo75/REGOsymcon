@@ -40,6 +40,9 @@ Es installiert die Modulbibliothek selbst und baut danach alles auf:
 7. Aufzeichnung und Diagramm für alle Messwerte (Sensoren, Wetterstation und
    die Ist-Temperatur der Klimakacheln) über die Archive-Instanz
 
+Etagen, Räume und Kacheln stehen in der Reihenfolge, in der REGOdeploy sie
+liefert — nicht nach `sort_order`, das im Projekt fast überall auf 0 steht.
+
 In den Räumen stehen damit nur die Kacheln; alles Technische liegt darunter in
 „REGOdeploy".
 
@@ -93,6 +96,18 @@ Aufrufen/Speichern-Bit) sind in `DPT_TEILE` hinterlegt.
 
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
 mit einem Typ ohne Kachel (`taster`, `url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.
+
+## Verlauf beim Aufklappen
+
+Sensor- und Klimakacheln zeigen aufgeklappt den Verlauf der letzten 24 Stunden
+als Fläche mit Linie, gezeichnet aus den Werten der Archive-Instanz. In der
+kleinen Kachel bleibt er ausgeblendet.
+
+Symcon bietet Modulen keinen Schalter, um Kachel und Vollbild zu
+unterscheiden — beide rufen dieselbe Funktion auf. Die Kacheln nutzen deshalb
+die Höhe des iframes: `@media (min-height: 260px)` blendet den Verlauf ein.
+Dafür steht der Visualisierungstyp dieser beiden Module auf 2 (Kachel und
+Vollbild).
 
 ## Design
 

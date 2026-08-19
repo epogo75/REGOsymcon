@@ -828,14 +828,17 @@ if (isset($tree['gruppenadressen'])) {
     }
 }
 
-foreach ($tree['etagen'] as $etage) {
-    $etageId = sync_category(ETAGE_PREFIX . $etage['id'], $etage['name'], $etage['sort_order'], $visuId, $index, $visited);
+// Die Reihenfolge kommt aus der Reihenfolge des Exports, nicht aus
+// "sort_order" -- das steht im Projekt fast überall auf 0, während die Liste
+// selbst bereits so sortiert ist, wie REGOdeploy sie zeigt.
+foreach ($tree['etagen'] as $etagePosition => $etage) {
+    $etageId = sync_category(ETAGE_PREFIX . $etage['id'], $etage['name'], $etagePosition, $visuId, $index, $visited);
 
-    foreach ($etage['raeume'] as $raum) {
-        $raumId = sync_category(RAUM_PREFIX . $raum['id'], $raum['name'], $raum['sort_order'], $etageId, $index, $visited);
+    foreach ($etage['raeume'] as $raumPosition => $raum) {
+        $raumId = sync_category(RAUM_PREFIX . $raum['id'], $raum['name'], $raumPosition, $etageId, $index, $visited);
         $raeume++;
 
-        foreach ($raum['funktionen'] as $funktion) {
+        foreach ($raum['funktionen'] as $funktionPosition => $funktion) {
             $bezeichnung = $raum['name'] . ' / ' . $funktion['name'];
             $info = $meta[$funktion['id']] ?? null;
 
@@ -963,7 +966,7 @@ foreach ($tree['etagen'] as $etage) {
                 IPS_SetName($kachelId, $funktion['name']);
                 $geaendert = true;
             }
-            IPS_SetPosition($kachelId, $funktion['sort_order']);
+            IPS_SetPosition($kachelId, $funktionPosition);
             $kachelIds[] = $kachelId;
 
             // Messwerte: aufzeichnen, damit die Visualisierung Verläufe zeigt.
@@ -1007,6 +1010,11 @@ $visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $
 // Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
 $verwaist = [];
 foreach ($index as $ident => $info) {
+    // Der Verwaist-Ordner selbst entsteht erst weiter unten -- ohne diese
+    // Ausnahme wollte er sich in sich selbst einsortieren.
+    if (in_array($ident, [DEPLOY_ROOT_IDENT, ORPHAN_ROOT_IDENT, VISU_ROOT_IDENT], true)) {
+        continue;
+    }
     if (!isset($visited[$ident])) {
         $verwaist[$ident] = $info;
     }
