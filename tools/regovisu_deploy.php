@@ -72,9 +72,10 @@ $SONDER_MASSE = [
         'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
         'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
     ],
-    // Info: vier Felder nebeneinander
+    // Info: vier Felder nebeneinander. Auf dem Rechner so hoch wie die
+    // Zaehlerkarte, damit beide in einer Reihe gleich hoch stehen.
     '{63561319-730C-4139-8F95-1DA3BD142C83}' => [
-        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
         'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
         'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
     ],
