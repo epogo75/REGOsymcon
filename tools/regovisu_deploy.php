@@ -1078,6 +1078,8 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
     // Messgrößen
     $zeilen = [];
     $variablen = [];
+    $leistungId = 0;
+    $energieId = 0;
     $position = 0;
 
     foreach (FINDER_MESSGROESSEN as $key => $messgroesse) {
@@ -1136,12 +1138,20 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
                 IPS_SetVariableCustomProfile($varId, $profil);
             }
             IPS_SetName($varId, $beschriftung);
-            $zeilen[] = [
-                'VariableID' => $varId,
-                'Label' => $beschriftung,
-                'Unit' => $einheit,
-                'Digits' => $stellen,
-            ];
+            // Leistung und Zählerstand stehen als eigene Felder vorn, wie in
+            // der Zähler-Karte von REGObase; der Rest folgt in der Liste.
+            if ($key === 'wirkleistung') {
+                $leistungId = $varId;
+            } elseif ($key === 'energie_bezug') {
+                $energieId = $varId;
+            } else {
+                $zeilen[] = [
+                    'VariableID' => $varId,
+                    'Label' => $beschriftung,
+                    'Unit' => $einheit,
+                    'Digits' => $stellen,
+                ];
+            }
             $variablen[$beschriftung] = $varId;
         }
     }
@@ -1160,9 +1170,20 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
         IPS_SetParent($kachelId, $kachelParentId);
         $index[$kachelIdent] = ['id' => $kachelId, 'parent' => $kachelParentId];
     }
+    $vorher = json_decode(IPS_GetConfiguration($kachelId), true);
     $desired = json_encode($zeilen);
-    if ((json_decode(IPS_GetConfiguration($kachelId), true)['Readings'] ?? '') !== $desired) {
+    $aendern = false;
+    foreach (['PowerVariable' => $leistungId, 'EnergyVariable' => $energieId] as $eigenschaft => $wert) {
+        if (($vorher[$eigenschaft] ?? 0) !== $wert) {
+            IPS_SetProperty($kachelId, $eigenschaft, $wert);
+            $aendern = true;
+        }
+    }
+    if (($vorher['Readings'] ?? '') !== $desired) {
         IPS_SetProperty($kachelId, 'Readings', $desired);
+        $aendern = true;
+    }
+    if ($aendern) {
         IPS_ApplyChanges($kachelId);
     }
     IPS_SetName($kachelId, $zaehler['name']);

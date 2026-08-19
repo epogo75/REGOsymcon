@@ -1,10 +1,20 @@
 {
     "elements": [
         {
+            "type": "SelectVariable",
+            "name": "PowerVariable",
+            "caption": "Leistung"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "EnergyVariable",
+            "caption": "Zählerstand"
+        },
+        {
             "type": "List",
             "name": "Readings",
-            "caption": "Messwerte",
-            "rowCount": 12,
+            "caption": "Weitere Messwerte",
+            "rowCount": 10,
             "add": true,
             "delete": true,
             "changeOrder": true,

@@ -131,6 +131,51 @@ trait RegoVisuTile
     }
 
     /**
+     * Kachelchen-Raster: je Eintrag ein Feld mit Etikett und Wert.
+     * $eintraege ist eine Liste aus ['label' => ..., 'text' => ...].
+     */
+    protected function RegoFelder(array $eintraege): string
+    {
+        $felder = '';
+        foreach ($eintraege as $eintrag) {
+            $felder .= '<span class="feld">'
+                . '<span class="feld-label">' . htmlspecialchars((string) $eintrag['label']) . '</span>'
+                . '<span class="feld-wert">' . htmlspecialchars((string) $eintrag['text']) . '</span>'
+                . '</span>';
+        }
+        return '<div class="felder" id="rego-felder">' . $felder . '</div>';
+    }
+
+    protected function RegoFelderScript(): string
+    {
+        return <<<'JS'
+function regoRenderFelder(eintraege) {
+    window.regoState.Felder = eintraege;
+    var raster = document.getElementById('rego-felder');
+    raster.innerHTML = '';
+    (eintraege || []).forEach(function (eintrag) {
+        var feld = document.createElement('span');
+        feld.className = 'feld';
+
+        var label = document.createElement('span');
+        label.className = 'feld-label';
+        label.textContent = eintrag.label;
+
+        var wert = document.createElement('span');
+        wert.className = 'feld-wert';
+        wert.textContent = eintrag.text;
+
+        feld.appendChild(label);
+        feld.appendChild(wert);
+        raster.appendChild(feld);
+    });
+}
+window.regoHandlers['Felder'] = regoRenderFelder;
+regoRenderFelder(window.regoState.Felder);
+JS;
+    }
+
+    /**
      * Werteraster: Zahlen mit Beschriftung, darunter Ja/Nein-Werte als Pillen.
      * Genutzt von Wetterstation und Zaehler -- beide zeigen eine Liste von
      * Messwerten, die sich nur im Inhalt unterscheidet.
@@ -394,6 +439,28 @@ svg{display:block}
     font-variant-numeric:tabular-nums;
 }
 .badge-danger{background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger)}
+
+/* Kachelchen-Raster wie die Dashboard-Karten in REGObase: gedaempftes
+   Etikett oben, Wert darunter, alles in kleinen Feldern nebeneinander.
+   Die Schrift ist etwas groesser als dort -- in REGObase sitzt die Karte in
+   einer dichten Seitenspalte, hier steht sie allein in einer Symcon-Kachel. */
+.felder{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(5.2rem,1fr));
+    gap:.4rem; width:100%;
+}
+.feld{
+    display:flex; flex-direction:column; gap:.1rem; overflow:hidden;
+    background:var(--surface-3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:.35rem .45rem; min-width:0;
+}
+.feld-label{
+    font-size:.68rem; line-height:1.15; color:var(--text-faint);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.feld-wert{
+    font-size:.85rem; font-weight:600; line-height:1.2; color:var(--text);
+    font-variant-numeric:tabular-nums; word-break:break-word;
+}
 
 /* Werteraster: mehrere Messwerte nebeneinander, jeder mit Beschriftung */
 .werte{display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; width:100%}

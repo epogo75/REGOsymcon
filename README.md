@@ -32,10 +32,10 @@ Browser öffnen, die Regler und Knöpfe reagieren.
 | REGOvisu Szene | Ein Knopf je Szene |
 | REGOvisu Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
 | REGOvisu Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
-| REGOvisu Info | Sonnenaufgang, Sonnenuntergang und Außentemperatur — steht auf der Startseite |
+| REGOvisu Info | Datum, Sonnenauf- und -untergang, Außentemperatur — steht auf der Startseite |
 | REGOvisu Taster | Ein Knopf, der auslöst — ohne Zustandsanzeige, weil ein Taster keinen hat |
 | REGOvisu URL-Aufruf | Ein Knopf, der eine Seite in einem neuen Tab öffnet |
-| REGOvisu Zähler | Werteraster eines Energiezählers — Leistung, Spannungen, Ströme, Energie |
+| REGOvisu Zähler | Leistung, Zählerstand und Heute, dahinter die weiteren Messwerte |
 
 ## Installation
 
@@ -167,7 +167,12 @@ ihre Farben als Query-Parameter an das iframe, aus der Helligkeit von
 `cardcolor` leitet das Modul das Theme ab. Die Kachel folgt damit Symcon und
 nicht dem Betriebssystem.
 
-Der Zuschnitt folgt dem Detail-Dialog von REGObaseX1: Regler oben über die
+Info- und Zählerkachel folgen dagegen den Dashboard-Karten von REGObase:
+kleine Felder mit gedämpftem Etikett oben und Wert darunter, im Raster
+nebeneinander. Die Schrift ist etwas größer als dort — in REGObase sitzt die
+Karte in einer dichten Seitenspalte, hier steht sie allein in einer Kachel.
+
+Der Zuschnitt der Bedienkacheln folgt dem Detail-Dialog von REGObaseX1: Regler oben über die
 volle Breite mit großem runden Griff und Prozentwert rechts, darunter gleich
 breite Knöpfe. Einen eigenen Rahmen bringt die Kachel nicht mit — Symcons Karte
 ist der Rahmen und liefert Raum und Namen.

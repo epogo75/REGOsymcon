@@ -50,46 +50,18 @@ class REGOvisuInfo extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $inner = '<div class="werte" id="rego-werte"></div>';
-
-        $script = <<<'JS'
-function regoRenderInfo(eintraege) {
-    window.regoState.Info = eintraege;
-    var werte = document.getElementById('rego-werte');
-    werte.innerHTML = '';
-    (eintraege || []).forEach(function (eintrag) {
-        var block = document.createElement('span');
-        block.className = 'wert';
-
-        var zahl = document.createElement('span');
-        zahl.className = 'wert-zahl';
-        zahl.textContent = eintrag.text;
-        if (eintrag.unit) {
-            var einheit = document.createElement('span');
-            einheit.className = 'wert-einheit';
-            einheit.textContent = eintrag.unit;
-            zahl.appendChild(einheit);
-        }
-
-        var label = document.createElement('span');
-        label.className = 'wert-label';
-        label.textContent = eintrag.label;
-
-        block.appendChild(zahl);
-        block.appendChild(label);
-        werte.appendChild(block);
-    });
-}
-window.regoHandlers['Info'] = regoRenderInfo;
-regoRenderInfo(window.regoState.Info);
-JS;
-
-        return $this->RegoTile('info', $inner, $script, ['Info' => $this->CurrentInfo()]);
+        return $this->RegoTile('info', $this->RegoFelder($this->CurrentInfo()),
+            $this->RegoFelderScript(), ['Felder' => $this->CurrentInfo()]);
     }
 
+    /**
+     * Die Felder der Karte: Datum, Sonnenauf- und -untergang, Aussentemperatur
+     * -- dieselbe Auswahl wie die Standort-Karte in REGObase, soweit Symcon
+     * die Werte hat (Ort, Bundesland und Hoehe kennt es nicht).
+     */
     private function CurrentInfo(): array
     {
-        $eintraege = [];
+        $felder = [['label' => 'Datum', 'text' => $this->Datum()]];
 
         foreach ([
             ['SunriseVariable', 'Sonnenaufgang'],
@@ -100,10 +72,9 @@ JS;
                 continue;
             }
             $zeitstempel = (int) GetValue($variableID);
-            $eintraege[] = [
-                'text' => ($zeitstempel > 0) ? date('H:i', $zeitstempel) : '–',
-                'unit' => '',
+            $felder[] = [
                 'label' => $label,
+                'text' => ($zeitstempel > 0) ? date('H:i', $zeitstempel) : '–',
             ];
         }
 
@@ -118,18 +89,24 @@ JS;
                 ? trim((string) IPS_GetVariableProfile($profil)['Suffix'])
                 : '';
 
-            $eintraege[] = [
-                'text' => number_format((float) GetValue($temperatur), $this->ReadPropertyInteger('Digits'), ',', ''),
-                'unit' => $einheit,
+            $felder[] = [
                 'label' => 'Außentemperatur',
+                'text' => trim(number_format((float) GetValue($temperatur),
+                    $this->ReadPropertyInteger('Digits'), ',', '') . ' ' . $einheit),
             ];
         }
 
-        return $eintraege;
+        return $felder;
+    }
+
+    private function Datum(): string
+    {
+        $wochentage = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        return $wochentage[(int) date('w')] . ', ' . date('d.m.Y');
     }
 
     private function PushState(): void
     {
-        $this->RegoPush('Info', $this->CurrentInfo());
+        $this->RegoPush('Felder', $this->CurrentInfo());
     }
 }
