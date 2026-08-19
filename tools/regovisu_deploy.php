@@ -47,7 +47,7 @@ $KACHEL_MASSE = [
 // Die Wetterstation zeigt ein ganzes Werteraster und braucht mehr Platz als
 // eine gewöhnliche Kachel -- deshalb eigene Maße, gleicher Aufbau.
 $WETTER_MASSE = [
-    'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+    'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
     'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
     'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
 ];
