@@ -30,12 +30,11 @@ Es installiert die Modulbibliothek selbst und baut danach alles auf:
 
 1. Modulbibliothek über die Modulverwaltung (falls noch nicht da)
 2. „Visu &lt;Projekt&gt;" mit Etagen und Räumen
-3. je Funktion ein KNX-Gerät unter „REGOdeploy > KNX-Geräte", verbunden mit
-   dem KNX Gateway
-4. in jeden Raum die passenden Kacheln, verdrahtet mit den Variablen dieser
-   Geräte
-5. den vollständigen ETS-Adresskatalog unter „REGOdeploy > KNX"
-   (abschaltbar über `$MIT_ADRESSKATALOG`)
+3. den ETS-Adresskatalog unter „REGOdeploy > KNX": Hauptgruppe und
+   Mittelgruppe wie in der ETS, jede Gruppenadresse als eigenes, exakt
+   typisiertes Gerät am KNX Gateway
+4. in jeden Raum die passenden Kacheln, verdrahtet mit den Variablen genau
+   dieser Geräte — jede Gruppenadresse existiert damit nur einmal in Symcon
 6. eine Infokachel auf der Startseite mit Sonnenauf- und -untergang aus
    Symcons Location-Instanz und der Außentemperatur der Wetterstation
 7. Aufzeichnung und Diagramm für alle Messwerte (Sensoren, Wetterstation und
@@ -67,7 +66,7 @@ Nichts daran ist geraten:
 |---|---|
 | Welche Aktion gehört zu welchem Bedienelement? | Funktionenkatalog von REGOdeploy (`/api/funktionenkatalog`) |
 | Welche Gruppenadresse steckt dahinter? | Projekt-Export (`/export/symcon-tree`) |
-| Welche Symcon-Variable ist das? | Ident des KNX-Geräts ist die Gruppenadresse: `GA_1_0_0_Value` |
+| Welche Symcon-Variable ist das? | Das Katalog-Gerät der Adresse (Ident `regodeploy_ga_1_0_0`), dessen Variable `Value` |
 
 | Funktionstyp | Kachel | Aktionen |
 |---|---|---|
@@ -87,8 +86,10 @@ Nichts daran ist geraten:
 | `sensor` (andere Unterart) | Sensor | die einzige Adresse der Funktion, wenn es genau eine gibt |
 | `wetterstation` | Wetterstation | alle Adressen der Funktion, sortiert; Zahlen ins Raster, Ja/Nein in die Pillen |
 
-Rückmeldeadressen faltet das Skript in ihre Primäradresse ein, deshalb zeigen
-Schreib- und Rückmelde-Eigenschaft bewusst auf dieselbe Variable.
+Rückmeldungen zeigen auf ihre eigene Adresse: bei „Licht — Ein/Aus" schreibt
+die Kachel auf die Schaltadresse und liest den Status von der
+Rückmeldeadresse. Mehrteilige DPTs (etwa 18.001 für Szenen, mit Nummer und
+Aufrufen/Speichern-Bit) sind in `DPT_TEILE` hinterlegt.
 
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
 mit einem Typ ohne Kachel (`taster`, `url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.

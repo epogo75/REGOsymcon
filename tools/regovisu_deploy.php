@@ -3,13 +3,12 @@
 //
 //   1. installiert die REGOvisu-Modulbibliothek, falls sie fehlt
 //   2. "Visu <Projekt>" mit Etagen und Räumen
-//   3. je Funktion ein KNX-Gerät unter "REGOdeploy > KNX-Geräte",
-//      verbunden mit dem KNX Gateway
+//   3. den ETS-Adresskatalog unter "REGOdeploy > KNX": Hauptgruppe und
+//      Mittelgruppe wie in der ETS, jede Gruppenadresse als eigenes, exakt
+//      typisiertes Gerät am KNX Gateway
 //   4. in jeden Raum die passenden REGOvisu-Kacheln, verdrahtet mit den
-//      Variablen dieser KNX-Geräte
-//   5. den vollständigen ETS-Adresskatalog unter "REGOdeploy > KNX",
-//      Hauptgruppe/Mittelgruppe wie in der ETS, jede Adresse als eigenes,
-//      exakt typisiertes Gerät
+//      Variablen genau dieser Geräte -- jede Gruppenadresse existiert damit
+//      nur einmal in Symcon
 //
 // In den Räumen stehen damit nur die Kacheln; alles Technische liegt
 // darunter in "REGOdeploy".
@@ -51,10 +50,6 @@ $WETTER_MASSE = [
     'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
     'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
 ];
-
-// Den vollständigen ETS-Adresskatalog mit anlegen? Er wird für die Kacheln
-// nicht gebraucht, ist aber praktisch, um immer alles im Projekt zu haben.
-$MIT_ADRESSKATALOG = true;
 
 const REGOVISU_REPOSITORY = 'https://github.com/epogo75/SymconREGOvisu';
 
@@ -132,16 +127,6 @@ const VERWALTETE_IDENTS = [
     INFO_IDENT,
 ];
 
-// Rein kosmetische Zuordnung für die "Tag"-Spalte des KNX-Geräts; sie steuert
-// nur Symcons eigene Filter und Symbole.
-const FUNKTIONSTYP_TAGS = [
-    'schalten'   => 'lighting',
-    'dimmen'     => 'lighting',
-    'jalousie'   => 'shading',
-    'temperatur' => 'heating',
-    'klima'      => 'heating',
-];
-
 // Funktionstyp (optional "|unterart") -> Kachel-Modul und Eigenschaften.
 //
 // Je Eigenschaft stehen die Aktionen in der Reihenfolge, in der sie probiert
@@ -208,6 +193,11 @@ const KACHEL_MAPPING = [
         'teile' => [
             'SceneVariable' => 'wert',
             'ModeVariable'  => 'zusatz',
+        ],
+        // Drei Plätze zum Beschriften, wie in der Visu von REGObaseX1. Wird
+        // nur beim Anlegen gesetzt -- eigene Namen bleiben erhalten.
+        'vorbelegung' => [
+            'Scenes' => '[{"Label":"Szene 1","Number":1},{"Label":"Szene 2","Number":2},{"Label":"Szene 3","Number":3}]',
         ],
     ],
 
@@ -408,90 +398,6 @@ function sync_category($ident, $name, $position, $parentId, &$index, &$visited)
     return $id;
 }
 
-function funktionstyp_tag($funktionstyp)
-{
-    return FUNKTIONSTYP_TAGS[$funktionstyp] ?? 'unknown';
-}
-
-/**
- * Eine GroupAddresses-Zeile je Primäradresse; Rückmeldungen werden als
- * "Mapping" in ihre Primäradresse eingefaltet. Type/Dimension sind Haupt- und
- * Nebennummer der DPT, so wie das KNX-Gerät sie erwartet.
- */
-function build_group_addresses($funktion)
-{
-    $rows = [];
-    foreach ($funktion['adressen'] as $adresse) {
-        $parts = explode('.', (string) $adresse['dpt_id'], 2);
-        if ((count($parts) !== 2) || !is_numeric($parts[0]) || !is_numeric($parts[1])) {
-            continue;
-        }
-        list($h, $m, $s) = array_map('intval', explode('/', $adresse['group_address']));
-
-        $mapping = [];
-        foreach ($adresse['feedback_addresses'] as $fb) {
-            list($fh, $fm, $fs) = array_map('intval', explode('/', $fb['group_address']));
-            $mapping[] = ['Address1' => $fh, 'Address2' => $fm, 'Address3' => $fs];
-        }
-
-        $rows[] = [
-            'Address1' => $h, 'Address2' => $m, 'Address3' => $s,
-            'Type' => (int) $parts[0], 'Dimension' => (int) $parts[1],
-            'Tag' => funktionstyp_tag($funktion['funktionstyp']),
-            'SubTag' => (strpos($adresse['aktion'], 'ammellenposition') !== false) ? 'lamella' : '',
-            'InitialName' => $adresse['aktion'],
-            'Mapping' => $mapping,
-            'CapabilityRead' => false, 'CapabilityWrite' => true, 'CapabilityReceive' => true,
-            'CapabilityTransmit' => false, 'EmulateStatus' => true,
-        ];
-    }
-    return $rows;
-}
-
-/**
- * Das KNX-Gerät einer Funktion: alle aktiven Adressen in einer Instanz.
- */
-function sync_geraet($funktion, $parentId, $gatewayId, &$index, &$visited)
-{
-    $rows = build_group_addresses($funktion);
-    if (empty($rows)) {
-        return [0, 'leer'];
-    }
-
-    $ident = GERAET_PREFIX . $funktion['id'];
-    $visited[$ident] = true;
-    $desired = json_encode($rows);
-    $neu = false;
-
-    if (isset($index[$ident])) {
-        $id = $index[$ident]['id'];
-        if ($index[$ident]['parent'] !== $parentId) {
-            IPS_SetParent($id, $parentId);
-            $index[$ident]['parent'] = $parentId;
-        }
-    } else {
-        $id = IPS_CreateInstance(KNX_DEVICE_GUID);
-        IPS_SetIdent($id, $ident);
-        IPS_SetParent($id, $parentId);
-        $index[$ident] = ['id' => $id, 'parent' => $parentId];
-        $neu = true;
-    }
-
-    $current = json_decode(IPS_GetConfiguration($id), true);
-    if (($current['GroupAddresses'] ?? '[]') !== $desired) {
-        IPS_SetProperty($id, 'GroupAddresses', $desired);
-        IPS_ApplyChanges($id);
-    }
-    if (IPS_GetName($id) !== $funktion['name']) {
-        IPS_SetName($id, $funktion['name']);
-    }
-    if (IPS_GetInstance($id)['ConnectionID'] !== $gatewayId) {
-        IPS_ConnectInstance($id, $gatewayId);
-    }
-
-    return [$id, $neu ? 'neu' : 'vorhanden'];
-}
-
 /**
  * Eine einzelne Gruppenadresse des ETS-Katalogs als exakt typisiertes Gerät.
  */
@@ -541,166 +447,55 @@ function sync_gruppenadresse($adresse, $parentId, $gatewayId, &$index, &$visited
 }
 
 /**
- * Aktion -> Variablen-ID im KNX-Gerät.
+ * Gruppenadresse -> Variable des zugehörigen Katalog-Geräts.
  *
- * Die Aktion kann eine Primäradresse sein oder eine eingefaltete Rückmeldung;
- * in beiden Fällen ist die Variable die der Primäradresse.
+ * Jede Adresse steht genau einmal in Symcon, als eigenes Gerät unter
+ * "REGOdeploy > KNX". Dessen Variable heißt "Value"; nur mehrteilige DPTs
+ * legen mehrere an (siehe DPT_TEILE).
  */
-function variable_for_aktion($funktion, $aktion, $geraetId, $teil = 'wert')
+function variable_of_ga($groupAddress, $dptId, $teil, &$index)
 {
-    foreach ($funktion['adressen'] as $adresse) {
-        $treffer = ($adresse['aktion'] === $aktion);
-        if (!$treffer) {
-            foreach ($adresse['feedback_addresses'] as $fb) {
-                if ($fb['aktion'] === $aktion) {
-                    $treffer = true;
-                    break;
-                }
-            }
-        }
-        if (!$treffer) {
-            continue;
-        }
-
-        list($h, $m, $s) = array_map('intval', explode('/', $adresse['group_address']));
-        $endung = DPT_TEILE[(string) $adresse['dpt_id']][$teil] ?? 'Value';
-        $varId = @IPS_GetObjectIDByIdent(sprintf('GA_%d_%d_%d_%s', $h, $m, $s, $endung), $geraetId);
-        return ($varId === false) ? 0 : $varId;
+    list($h, $m, $s) = array_map('intval', explode('/', $groupAddress));
+    $ident = sprintf('%s%d_%d_%d', GA_PREFIX, $h, $m, $s);
+    if (!isset($index[$ident])) {
+        return 0;
     }
+
+    $kandidaten = ['Value'];
+    if (isset(DPT_TEILE[(string) $dptId][$teil])) {
+        array_unshift($kandidaten, DPT_TEILE[(string) $dptId][$teil]);
+    }
+
+    foreach ($kandidaten as $kandidat) {
+        $varId = @IPS_GetObjectIDByIdent($kandidat, $index[$ident]['id']);
+        if ($varId !== false) {
+            return $varId;
+        }
+    }
+
     return 0;
 }
 
 /**
- * Richtet die Kachel-Visualisierung ein: sie startet im Visu-Ordner des
- * Projekts (dessen Etagen sind damit die erste Ebene), und jede REGOvisu-
- * Kachel bekommt die Höhe einer Zeile statt der vollen Standardhöhe.
+ * Aktion -> Variable.
  *
- * Die Kachelkonfiguration ist eine Map "Name -> Konfiguration"; bestehende
- * Konfigurationen bleiben erhalten, nur die Maße der eigenen Kacheln werden
- * gesetzt.
+ * Rückmeldungen zeigen auf ihre eigene Adresse, nicht auf die des
+ * Schreibbefehls -- anders als beim früheren Sammelgerät, das beide in eine
+ * Zeile gefaltet hat.
  */
-function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterMasse)
+function variable_for_aktion($funktion, $aktion, &$index, $teil = 'wert')
 {
-    $angepasst = 0;
-
-    foreach (IPS_GetInstanceListByModuleID(TILE_VISU_GUID) as $visId) {
-        if (json_decode(IPS_GetConfiguration($visId), true)['BaseID'] !== $visuRootId) {
-            IPS_SetProperty($visId, 'BaseID', $visuRootId);
-            IPS_ApplyChanges($visId);
-        }
-
-        if (empty($kachelIds)) {
-            continue;
-        }
-
-        $liste = finde_gridkonfiguration(json_decode(IPS_GetConfigurationForm($visId), true)['elements']);
-        if (!is_array($liste)) {
-            continue;
-        }
-
-        $map = [];
-        foreach ($liste as $eintrag) {
-            // Der Name ist "~Desktop", "~Phone", "~Tablet" -- die Tilde faellt weg.
-            $geraet = ltrim($eintrag['Name'], '~');
-            $masse = $alleMasse[$geraet] ?? reset($alleMasse);
-            $wetter = $wetterMasse[$geraet] ?? reset($wetterMasse);
-            $config = is_string($eintrag['Config']) ? json_decode($eintrag['Config'], true) : $eintrag['Config'];
-            if (!is_array($config)) {
-                continue;
-            }
-            foreach (['landscape', 'portrait'] as $lage) {
-                if (!isset($config[$lage]) || (($config[$lage]['crossAxis'] ?? null) === null)) {
-                    continue;
-                }
-                $spalten = $config[$lage]['crossAxis'];
-                $schluessel = ($lage === 'landscape') ? 'quer' : 'hoch';
-                $fuerLage = $masse[$schluessel];
-                $masseFuerKachel = [
-                    'height' => max(1, (int) $fuerLage['hoehe']),
-                    'width' => max(1, min((int) $fuerLage['breite'], $spalten)),
-                ];
-                $fuerWetter = $wetter[$schluessel];
-                $masseFuerWetter = [
-                    'height' => max(1, (int) $fuerWetter['hoehe']),
-                    'width' => max(1, min((int) $fuerWetter['breite'], $spalten)),
-                ];
-                $dim = (array) ($config[$lage]['individualDimensions'] ?? []);
-                foreach ($kachelIds as $id) {
-                    $eigen = $masseFuerKachel;
-                    if (IPS_GetInstance($id)['ModuleInfo']['ModuleID'] === RGV_WETTER) {
-                        $eigen = $masseFuerWetter;
-                    }
-                    $dim[(string) $id] = $eigen;
-                }
-                $config[$lage]['individualDimensions'] = empty($dim) ? new stdClass() : $dim;
-                foreach (['individualConfig', 'individualPositions'] as $feld) {
-                    if (empty($config[$lage][$feld])) {
-                        $config[$lage][$feld] = new stdClass();
-                    }
-                }
-            }
-            $map[$eintrag['Name']] = $config;
-        }
-
-        if (!empty($map) && VISU_SaveGridConfiguration($visId, json_encode($map))) {
-            $angepasst++;
-        }
-    }
-
-    return $angepasst;
-}
-
-/**
- * Fischt die Kachelkonfigurations-Liste aus dem Konfigurationsformular.
- */
-function finde_gridkonfiguration($items)
-{
-    foreach ($items as $item) {
-        if (($item['name'] ?? '') === 'GridConfiguration') {
-            return $item['values'] ?? [];
-        }
-        foreach (['items', 'elements', 'actions'] as $schluessel) {
-            if (isset($item[$schluessel]) && is_array($item[$schluessel])) {
-                $treffer = finde_gridkonfiguration($item[$schluessel]);
-                if ($treffer !== null) {
-                    return $treffer;
-                }
-            }
-        }
-    }
-    return null;
-}
-
-/**
- * Baut die Messwert-Liste der Wetterstation: jede Adresse der Funktion wird
- * eine Zeile, sortiert nach der Reihenfolge oben.
- */
-function wetterstation_readings($funktion, $geraetId)
-{
-    $zeilen = [];
-
     foreach ($funktion['adressen'] as $adresse) {
-        $varId = variable_for_aktion($funktion, $adresse['aktion'], $geraetId);
-        if ($varId == 0) {
-            continue;
+        if ($adresse['aktion'] === $aktion) {
+            return variable_of_ga($adresse['group_address'], $adresse['dpt_id'], $teil, $index);
         }
-        $vorgabe = WETTER_AKTIONEN[$adresse['aktion']] ?? ['rang' => 999, 'digits' => -1, 'alarm' => false];
-        $zeilen[] = [
-            'rang' => $vorgabe['rang'],
-            'zeile' => [
-                'VariableID' => $varId,
-                'Label' => $adresse['aktion'],
-                'Digits' => $vorgabe['digits'],
-                'Alarm' => $vorgabe['alarm'],
-            ],
-        ];
+        foreach ($adresse['feedback_addresses'] as $fb) {
+            if ($fb['aktion'] === $aktion) {
+                return variable_of_ga($fb['group_address'], $adresse['dpt_id'], $teil, $index);
+            }
+        }
     }
-
-    usort($zeilen, function ($a, $b) {
-        return ($a['rang'] <=> $b['rang']) ?: strcmp($a['zeile']['Label'], $b['zeile']['Label']);
-    });
-
-    return array_column($zeilen, 'zeile');
+    return 0;
 }
 
 /**
@@ -791,6 +586,144 @@ function sync_infokachel($visuId, $aussentemperatur, &$index, &$visited)
     return $id;
 }
 
+/**
+ * Baut die Messwert-Liste der Wetterstation: jede Adresse der Funktion wird
+ * eine Zeile, sortiert nach der Reihenfolge oben.
+ */
+function wetterstation_readings($funktion, &$index)
+{
+    $zeilen = [];
+
+    foreach ($funktion['adressen'] as $adresse) {
+        $varId = variable_for_aktion($funktion, $adresse['aktion'], $index);
+        if ($varId == 0) {
+            continue;
+        }
+        $vorgabe = WETTER_AKTIONEN[$adresse['aktion']] ?? ['rang' => 999, 'digits' => -1, 'alarm' => false];
+        $zeilen[] = [
+            'rang' => $vorgabe['rang'],
+            'zeile' => [
+                'VariableID' => $varId,
+                'Label' => $adresse['aktion'],
+                'Digits' => $vorgabe['digits'],
+                'Alarm' => $vorgabe['alarm'],
+            ],
+        ];
+    }
+
+    usort($zeilen, function ($a, $b) {
+        return ($a['rang'] <=> $b['rang']) ?: strcmp($a['zeile']['Label'], $b['zeile']['Label']);
+    });
+
+    return array_column($zeilen, 'zeile');
+}
+
+/**
+ * Richtet die Kachel-Visualisierung ein: sie startet im Visu-Ordner des
+ * Projekts (dessen Etagen sind damit die erste Ebene), und jede REGOvisu-
+ * Kachel bekommt die eingestellten Maße im Raster.
+ *
+ * Die Kachelkonfiguration ist eine Map "Name -> Konfiguration"; bestehende
+ * Konfigurationen bleiben erhalten, nur die Maße der eigenen Kacheln werden
+ * gesetzt.
+ */
+function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterMasse)
+{
+    $angepasst = 0;
+
+    foreach (IPS_GetInstanceListByModuleID(TILE_VISU_GUID) as $visId) {
+        if (json_decode(IPS_GetConfiguration($visId), true)['BaseID'] !== $visuRootId) {
+            IPS_SetProperty($visId, 'BaseID', $visuRootId);
+            IPS_ApplyChanges($visId);
+        }
+
+        if (empty($kachelIds)) {
+            continue;
+        }
+
+        $liste = finde_gridkonfiguration(json_decode(IPS_GetConfigurationForm($visId), true)['elements']);
+        if (!is_array($liste)) {
+            continue;
+        }
+
+        $map = [];
+        foreach ($liste as $eintrag) {
+            // Der Name ist "~Desktop", "~Phone", "~Tablet" -- die Tilde faellt weg.
+            $geraet = ltrim($eintrag['Name'], '~');
+            $masse = $alleMasse[$geraet] ?? reset($alleMasse);
+            $wetter = $wetterMasse[$geraet] ?? reset($wetterMasse);
+
+            $config = is_string($eintrag['Config']) ? json_decode($eintrag['Config'], true) : $eintrag['Config'];
+            if (!is_array($config)) {
+                continue;
+            }
+
+            foreach (['landscape', 'portrait'] as $lage) {
+                if (!isset($config[$lage]) || (($config[$lage]['crossAxis'] ?? null) === null)) {
+                    continue;
+                }
+                $spalten = $config[$lage]['crossAxis'];
+                $schluessel = ($lage === 'landscape') ? 'quer' : 'hoch';
+
+                $fuerLage = $masse[$schluessel];
+                $masseFuerKachel = [
+                    'height' => max(1, (int) $fuerLage['hoehe']),
+                    'width' => max(1, min((int) $fuerLage['breite'], $spalten)),
+                ];
+                $fuerWetter = $wetter[$schluessel];
+                $masseFuerWetter = [
+                    'height' => max(1, (int) $fuerWetter['hoehe']),
+                    'width' => max(1, min((int) $fuerWetter['breite'], $spalten)),
+                ];
+
+                $dim = (array) ($config[$lage]['individualDimensions'] ?? []);
+                foreach ($kachelIds as $id) {
+                    $eigen = $masseFuerKachel;
+                    if (IPS_GetInstance($id)['ModuleInfo']['ModuleID'] === RGV_WETTER) {
+                        $eigen = $masseFuerWetter;
+                    }
+                    $dim[(string) $id] = $eigen;
+                }
+                $config[$lage]['individualDimensions'] = empty($dim) ? new stdClass() : $dim;
+
+                foreach (['individualConfig', 'individualPositions'] as $feld) {
+                    if (empty($config[$lage][$feld])) {
+                        $config[$lage][$feld] = new stdClass();
+                    }
+                }
+            }
+            $map[$eintrag['Name']] = $config;
+        }
+
+        if (!empty($map) && VISU_SaveGridConfiguration($visId, json_encode($map))) {
+            $angepasst++;
+        }
+    }
+
+    return $angepasst;
+}
+
+/**
+ * Fischt die Kachelkonfigurations-Liste aus dem Konfigurationsformular.
+ */
+function finde_gridkonfiguration($items)
+{
+    foreach ($items as $item) {
+        if (($item['name'] ?? '') === 'GridConfiguration') {
+            return $item['values'] ?? [];
+        }
+        foreach (['items', 'elements', 'actions'] as $schluessel) {
+            if (isset($item[$schluessel]) && is_array($item[$schluessel])) {
+                $treffer = finde_gridkonfiguration($item[$schluessel]);
+                if ($treffer !== null) {
+                    return $treffer;
+                }
+            }
+        }
+    }
+    return null;
+}
+
 // ---- Ablauf ----
 
 $modulStatus = ensure_module_installed();
@@ -832,9 +765,8 @@ $index = [];
 collect_idents(0, $index);
 $visited = [];
 
-$visuId    = sync_category(VISU_ROOT_IDENT, 'Visu ' . $tree['project_name'], 0, 0, $index, $visited);
-$rootId    = sync_category(DEPLOY_ROOT_IDENT, 'REGOdeploy', 1, 0, $index, $visited);
-$geraeteId = sync_category(KNX_GERAETE_IDENT, 'KNX-Geräte', 0, $rootId, $index, $visited);
+$visuId = sync_category(VISU_ROOT_IDENT, 'Visu ' . $tree['project_name'], 0, 0, $index, $visited);
+$rootId = sync_category(DEPLOY_ROOT_IDENT, 'REGOdeploy', 1, 0, $index, $visited);
 
 // Das laufende Skript legt sich selbst in den REGOdeploy-Ordner.
 if (isset($_IPS['SELF']) && ($_IPS['SELF'] > 0) && IPS_ObjectExists($_IPS['SELF'])
@@ -848,10 +780,53 @@ $aussentemperatur = 0;
 $kachelnNeu = 0;
 $kachelnAktualisiert = 0;
 $kachelnUnveraendert = 0;
-$geraeteNeu = 0;
-$geraeteVorhanden = 0;
 $raeume = 0;
 $hinweise = [];
+
+// Der ETS-Adresskatalog: jede Gruppenadresse als eigenes Gerät. Er entsteht
+// vor den Kacheln, denn die zeigen auf genau diese Variablen.
+$gaNeu = 0;
+$gaVorhanden = 0;
+$gaUebersprungen = 0;
+
+if (isset($tree['gruppenadressen'])) {
+    $knxId = sync_category(KNX_ROOT_IDENT, 'KNX', 1, $rootId, $index, $visited);
+
+    foreach ($tree['gruppenadressen'] as $hauptgruppe) {
+        $hgId = sync_category(
+            HG_PREFIX . $hauptgruppe['hauptgruppe'],
+            $hauptgruppe['name'],
+            $hauptgruppe['hauptgruppe'],
+            $knxId,
+            $index,
+            $visited
+        );
+
+        foreach ($hauptgruppe['mittelgruppen'] as $mittelgruppe) {
+            $mgId = sync_category(
+                MG_PREFIX . $hauptgruppe['hauptgruppe'] . '_' . $mittelgruppe['mittelgruppe'],
+                $mittelgruppe['name'],
+                $mittelgruppe['mittelgruppe'],
+                $hgId,
+                $index,
+                $visited
+            );
+
+            foreach ($mittelgruppe['adressen'] as $adresse) {
+                switch (sync_gruppenadresse($adresse, $mgId, $gatewayId, $index, $visited)) {
+                    case 'neu':
+                        $gaNeu++;
+                        break;
+                    case 'vorhanden':
+                        $gaVorhanden++;
+                        break;
+                    default:
+                        $gaUebersprungen++;
+                }
+            }
+        }
+    }
+}
 
 foreach ($tree['etagen'] as $etage) {
     $etageId = sync_category(ETAGE_PREFIX . $etage['id'], $etage['name'], $etage['sort_order'], $visuId, $index, $visited);
@@ -873,17 +848,6 @@ foreach ($tree['etagen'] as $etage) {
                 continue;
             }
 
-            list($geraetId, $geraetStatus) = sync_geraet($funktion, $geraeteId, $gatewayId, $index, $visited);
-            if ($geraetId == 0) {
-                $hinweise[] = "$bezeichnung: keine Adresse mit gültiger DPT";
-                continue;
-            }
-            if ($geraetStatus === 'neu') {
-                $geraeteNeu++;
-            } else {
-                $geraeteVorhanden++;
-            }
-
             $unterart = ($info['unterart'] ?? '') ?: '';
             $key = ($unterart !== '') && isset(KACHEL_MAPPING[$funktion['funktionstyp'] . '|' . $unterart])
                 ? $funktion['funktionstyp'] . '|' . $unterart
@@ -897,7 +861,7 @@ foreach ($tree['etagen'] as $etage) {
 
             // Kacheln mit Liste statt Einzelfeldern (Wetterstation).
             if (isset($mapping['liste'])) {
-                $zeilen = wetterstation_readings($funktion, $geraetId);
+                $zeilen = wetterstation_readings($funktion, $index);
                 if (empty($zeilen)) {
                     $hinweise[] = "$bezeichnung: keine der Adressen ist in Symcon aktiv";
                     continue;
@@ -917,12 +881,12 @@ foreach ($tree['etagen'] as $etage) {
                     // Ohne benannte Aktion nur dann verdrahten, wenn die
                     // Funktion genau eine Adresse hat -- dann ist sie eindeutig.
                     if (count($funktion['adressen']) === 1) {
-                        $varId = variable_for_aktion($funktion, $funktion['adressen'][0]['aktion'], $geraetId);
+                        $varId = variable_for_aktion($funktion, $funktion['adressen'][0]['aktion'], $index);
                     }
                 }
                 $teil = $mapping['teile'][$property] ?? 'wert';
                 foreach ($aktionen as $aktion) {
-                    $varId = variable_for_aktion($funktion, $aktion, $geraetId, $teil);
+                    $varId = variable_for_aktion($funktion, $aktion, $index, $teil);
                     if ($varId != 0) {
                         break;
                     }
@@ -976,6 +940,14 @@ foreach ($tree['etagen'] as $etage) {
                 IPS_SetProperty($kachelId, $mapping['liste'], $listenWert);
                 $apply = true;
             }
+            // Vorbelegung: nur setzen, solange das Feld unberührt ist.
+            foreach (($mapping['vorbelegung'] ?? []) as $property => $vorgabe) {
+                $bisher = trim((string) ($current[$property] ?? ''));
+                if (($bisher === '') || ($bisher === '[]')) {
+                    IPS_SetProperty($kachelId, $property, $vorgabe);
+                    $apply = true;
+                }
+            }
             // Feste Vorgaben des Funktionstyps (Nachkommastellen, Texte).
             foreach (($mapping['einstellungen'] ?? []) as $property => $vorgabe) {
                 if (!array_key_exists($property, $current) || ($current[$property] != $vorgabe)) {
@@ -1023,50 +995,6 @@ foreach ($tree['etagen'] as $etage) {
     }
 }
 
-// Vollständiger ETS-Adresskatalog
-$gaNeu = 0;
-$gaVorhanden = 0;
-$gaUebersprungen = 0;
-
-if ($MIT_ADRESSKATALOG && isset($tree['gruppenadressen'])) {
-    $knxId = sync_category(KNX_ROOT_IDENT, 'KNX', 1, $rootId, $index, $visited);
-
-    foreach ($tree['gruppenadressen'] as $hauptgruppe) {
-        $hgId = sync_category(
-            HG_PREFIX . $hauptgruppe['hauptgruppe'],
-            $hauptgruppe['name'],
-            $hauptgruppe['hauptgruppe'],
-            $knxId,
-            $index,
-            $visited
-        );
-
-        foreach ($hauptgruppe['mittelgruppen'] as $mittelgruppe) {
-            $mgId = sync_category(
-                MG_PREFIX . $hauptgruppe['hauptgruppe'] . '_' . $mittelgruppe['mittelgruppe'],
-                $mittelgruppe['name'],
-                $mittelgruppe['mittelgruppe'],
-                $hgId,
-                $index,
-                $visited
-            );
-
-            foreach ($mittelgruppe['adressen'] as $adresse) {
-                switch (sync_gruppenadresse($adresse, $mgId, $gatewayId, $index, $visited)) {
-                    case 'neu':
-                        $gaNeu++;
-                        break;
-                    case 'vorhanden':
-                        $gaVorhanden++;
-                        break;
-                    default:
-                        $gaUebersprungen++;
-                }
-            }
-        }
-    }
-}
-
 $infoId = sync_infokachel($visuId, $aussentemperatur, $index, $visited);
 if ($infoId != 0) {
     $kachelIds[] = $infoId;
@@ -1108,13 +1036,10 @@ foreach ($verwaist as $ident => $info) {
 echo "REGOvisu-Deploy fertig.\n";
 echo "  Modul:    $modulStatus\n";
 echo sprintf("  Struktur: %d Räume unter \"Visu %s\"\n", $raeume, $tree['project_name']);
-echo sprintf("  KNX:      %d Geräte neu, %d vorhanden\n", $geraeteNeu, $geraeteVorhanden);
 echo sprintf("  Kacheln:  %d neu, %d aktualisiert, %d unverändert\n",
     $kachelnNeu, $kachelnAktualisiert, $kachelnUnveraendert);
-if ($MIT_ADRESSKATALOG) {
-    echo sprintf("  Katalog:  %d Adressen neu, %d vorhanden, %d ohne Symcon-Zuordnung\n",
-        $gaNeu, $gaVorhanden, $gaUebersprungen);
-}
+echo sprintf("  KNX:      %d Adressen neu, %d vorhanden, %d ohne Symcon-Zuordnung\n",
+    $gaNeu, $gaVorhanden, $gaUebersprungen);
 $masseText = [];
 foreach ($KACHEL_MASSE as $geraet => $m) {
     $masseText[] = sprintf('%s %dx%d/%dx%d', $geraet,
