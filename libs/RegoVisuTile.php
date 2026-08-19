@@ -139,6 +139,14 @@ trait RegoVisuTile
      */
     protected function RegoFelder(array $zeilen): string
     {
+        // Alle Zeilen bekommen dieselbe Spaltenzahl -- die laengste Zeile gibt
+        // sie vor. Eine kuerzere Zeile laesst rechts eine Luecke, statt ihre
+        // Felder breitzuziehen; so sind alle Felder gleich breit.
+        $spalten = 1;
+        foreach ($zeilen as $zeile) {
+            $spalten = max($spalten, count($zeile));
+        }
+
         $html = '';
         foreach ($zeilen as $zeile) {
             if (empty($zeile)) {
@@ -152,7 +160,7 @@ trait RegoVisuTile
                     . '</span>';
             }
             $html .= '<div class="feld-zeile" style="grid-template-columns:repeat('
-                . count($zeile) . ',minmax(0,1fr))">' . $felder . '</div>';
+                . $spalten . ',minmax(0,1fr))">' . $felder . '</div>';
         }
 
         return '<div class="felder" id="rego-felder">' . $html . '</div>';
@@ -165,13 +173,21 @@ function regoRenderFelder(zeilen) {
     window.regoState.Felder = zeilen;
     var raster = document.getElementById('rego-felder');
     raster.innerHTML = '';
+
+    var spalten = 1;
+    (zeilen || []).forEach(function (zeile) {
+        if (zeile && zeile.length > spalten) {
+            spalten = zeile.length;
+        }
+    });
+
     (zeilen || []).forEach(function (zeile) {
         if (!zeile || !zeile.length) {
             return;
         }
         var reihe = document.createElement('div');
         reihe.className = 'feld-zeile';
-        reihe.style.gridTemplateColumns = 'repeat(' + zeile.length + ',minmax(0,1fr))';
+        reihe.style.gridTemplateColumns = 'repeat(' + spalten + ',minmax(0,1fr))';
 
         zeile.forEach(function (eintrag) {
             var feld = document.createElement('span');
