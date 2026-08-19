@@ -19,6 +19,7 @@ Kachel-Visualisierung schreibt den Instanznamen selbst darüber.
 | REGOvisu Jalousie | Position in %, Auf / Stopp / Ab |
 | REGOvisu Klima | „Ist 21,5 °C", Stepper − / Soll / + |
 | REGOvisu Szene | Ein Knopf je Szene |
+| REGOvisu Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
 
 ## Installation
 
@@ -71,13 +72,20 @@ Nichts daran ist geraten:
 | `temperatur` | Klima | Ist-Temperatur, Soll-Temperatur |
 | `klima` | Klima | Ist-Temperatur, Soll-Temperatur (+ Rückmeldung) |
 | `szene` | Szene | Szene |
+| `sensor` / `temperatur` | Sensor | Temperatur |
+| `sensor` / `feuchte` | Sensor | Feuchte |
+| `sensor` / `co2` | Sensor | CO2 Wert |
+| `sensor` / `fensterkontakt` | Sensor | Fenster offen/geschlossen, gekippt/geschlossen, Batteriestand |
+| `sensor` / `rauchmelder` | Sensor | Rauchmelder ausgelöst, Batteriestand |
+| `sensor` / `wassermelder` | Sensor | Wassermelder ausgelöst, Batteriestand |
+| `sensor` (andere Unterart) | Sensor | die einzige Adresse der Funktion, wenn es genau eine gibt |
 
 Rückmeldeadressen faltet das Skript in ihre Primäradresse ein, deshalb zeigen
 Schreib- und Rückmelde-Eigenschaft bewusst auf dieselbe Variable.
 
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
-mit einem Typ ohne Bedienelement (`sensor`, `wetterstation`, `taster`,
-`url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.
+mit einem Typ ohne Kachel (`wetterstation`, `taster`, `url_aufruf`) werden
+übersprungen und am Ende einzeln mit Begründung genannt.
 
 ## Design
 
@@ -94,8 +102,14 @@ ihre Farben als Query-Parameter an das iframe, aus der Helligkeit von
 `cardcolor` leitet das Modul das Theme ab. Die Kachel folgt damit Symcon und
 nicht dem Betriebssystem.
 
-Schrift ist Inter mit System-Fallback, Grundgröße 12 px. Die Zeile wächst mit
-ihrem Inhalt und füllt den Kachelplatz nicht aus.
+Der Zuschnitt folgt dem Detail-Dialog von REGObaseX1: Regler oben über die
+volle Breite mit großem runden Griff und Prozentwert rechts, darunter gleich
+breite Knöpfe. Einen eigenen Rahmen bringt die Kachel nicht mit — Symcons Karte
+ist der Rahmen und liefert Raum und Namen.
+
+Schrift ist Inter mit System-Fallback. Das Skript setzt außerdem die Kachelmaße
+im Raster, getrennt je Zielgerät und Ausrichtung (`$KACHEL_MASSE`), und die
+Startkategorie der Visualisierung auf den Visu-Ordner des Projekts.
 
 ## Voraussetzungen
 

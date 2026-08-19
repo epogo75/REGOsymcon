@@ -1,0 +1,24 @@
+{
+    "elements": [
+        {
+            "type": "SelectVariable",
+            "name": "ValueVariable",
+            "caption": "Messwert"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "SecondaryVariable",
+            "caption": "Zweiter Zustand (optional, z. B. „gekippt“)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "BatteryVariable",
+            "caption": "Batteriestand (optional)"
+        },
+        {
+            "type": "CheckBox",
+            "name": "AlarmOnTrue",
+            "caption": "Zustand „wahr“ als Alarm hervorheben (Melder, Fenster offen)"
+        }
+    ]
+}

@@ -243,6 +243,24 @@ svg{display:block}
     font-variant-numeric:tabular-nums;
 }
 
+/* Messwert: grosse Zahl mit kleiner Einheit, wie in der Raumzusammenfassung
+   von REGObaseX1 */
+.sensor{display:flex; align-items:baseline; flex-wrap:wrap; gap:0 .25rem; width:100%}
+.sensor-value{
+    font-size:1.9rem; font-weight:700; line-height:1.05; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums; color:var(--text);
+}
+.sensor-value.alarm{color:var(--danger)}
+.sensor-unit{font-size:.85rem; font-weight:500; color:var(--text-muted)}
+.badges{display:flex; flex-wrap:wrap; gap:.4rem; width:100%}
+.badge{
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.18rem .6rem; border:1px solid var(--border); border-radius:999px;
+    background:var(--surface-2); font-size:.8rem; color:var(--text-muted);
+    font-variant-numeric:tabular-nums;
+}
+.badge-danger{background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger)}
+
 /* Klima: links der Istwert, rechts der Sollwert-Steller */
 .readout{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0}
 .readout-label{

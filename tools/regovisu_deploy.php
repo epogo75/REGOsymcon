@@ -56,6 +56,7 @@ const RGV_DIMMEN   = '{A4507CF7-C921-467C-BD01-699C862B9F5C}';
 const RGV_JALOUSIE = '{23F455EC-9236-480B-B02F-E10CE43DBDE2}';
 const RGV_KLIMA    = '{FEB37553-F02A-4F1B-A669-15BCD71E0712}';
 const RGV_SZENE    = '{C2314D3B-F6AD-40E2-B5B7-6DB850E0AD5E}';
+const RGV_SENSOR   = '{0871A6F2-8912-4EC0-9C4F-616982DAFF34}';
 
 const MODULE_CONTROL_GUID = '{B8A5067A-AFC2-3798-FEDC-BCD02A45615E}';
 const TILE_VISU_GUID      = '{B5B875BB-9B76-45FD-4E67-2607E45B3AC4}';
@@ -154,6 +155,56 @@ const KACHEL_MAPPING = [
         'module' => RGV_SZENE,
         'props' => [
             'SceneVariable' => ['Szene'],
+        ],
+    ],
+
+    // Messwerte. Die Aktion je Unterart steht im Funktionenkatalog; für eine
+    // Unterart, die hier nicht steht, greift die Regel weiter unten: hat die
+    // Funktion genau eine Adresse, ist das eindeutig der Messwert.
+    'sensor' => [
+        'module' => RGV_SENSOR,
+        'props' => [
+            'ValueVariable' => [],
+        ],
+    ],
+    'sensor|temperatur' => [
+        'module' => RGV_SENSOR,
+        'props' => [
+            'ValueVariable' => ['Temperatur'],
+        ],
+    ],
+    'sensor|feuchte' => [
+        'module' => RGV_SENSOR,
+        'props' => [
+            'ValueVariable' => ['Feuchte'],
+        ],
+    ],
+    'sensor|co2' => [
+        'module' => RGV_SENSOR,
+        'props' => [
+            'ValueVariable' => ['CO2 Wert'],
+        ],
+    ],
+    'sensor|fensterkontakt' => [
+        'module' => RGV_SENSOR,
+        'props' => [
+            'ValueVariable'     => ['Fenster offen/geschlossen'],
+            'SecondaryVariable' => ['Fenster gekippt/geschlossen'],
+            'BatteryVariable'   => ['Batteriestand'],
+        ],
+    ],
+    'sensor|rauchmelder' => [
+        'module' => RGV_SENSOR,
+        'props' => [
+            'ValueVariable'   => ['Rauchmelder ausgelöst'],
+            'BatteryVariable' => ['Batteriestand'],
+        ],
+    ],
+    'sensor|wassermelder' => [
+        'module' => RGV_SENSOR,
+        'props' => [
+            'ValueVariable'   => ['Wassermelder ausgelöst'],
+            'BatteryVariable' => ['Batteriestand'],
         ],
     ],
 ];
@@ -629,6 +680,13 @@ foreach ($tree['etagen'] as $etage) {
             $fehlend = [];
             foreach ($mapping['props'] as $property => $aktionen) {
                 $varId = 0;
+                if (empty($aktionen)) {
+                    // Ohne benannte Aktion nur dann verdrahten, wenn die
+                    // Funktion genau eine Adresse hat -- dann ist sie eindeutig.
+                    if (count($funktion['adressen']) === 1) {
+                        $varId = variable_for_aktion($funktion, $funktion['adressen'][0]['aktion'], $geraetId);
+                    }
+                }
                 foreach ($aktionen as $aktion) {
                     $varId = variable_for_aktion($funktion, $aktion, $geraetId);
                     if ($varId != 0) {
