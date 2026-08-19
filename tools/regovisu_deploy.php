@@ -44,6 +44,14 @@ $KACHEL_MASSE = [
     'Tablet'  => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
 ];
 
+// Die Wetterstation zeigt ein ganzes Werteraster und braucht mehr Platz als
+// eine gewöhnliche Kachel -- deshalb eigene Maße, gleicher Aufbau.
+$WETTER_MASSE = [
+    'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+    'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
+    'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
+];
+
 // Den vollständigen ETS-Adresskatalog mit anlegen? Er wird für die Kacheln
 // nicht gebraucht, ist aber praktisch, um immer alles im Projekt zu haben.
 $MIT_ADRESSKATALOG = true;
@@ -553,7 +561,7 @@ function variable_for_aktion($funktion, $aktion, $geraetId)
  * Konfigurationen bleiben erhalten, nur die Maße der eigenen Kacheln werden
  * gesetzt.
  */
-function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse)
+function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $wetterMasse)
 {
     $angepasst = 0;
 
@@ -577,6 +585,7 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse)
             // Der Name ist "~Desktop", "~Phone", "~Tablet" -- die Tilde faellt weg.
             $geraet = ltrim($eintrag['Name'], '~');
             $masse = $alleMasse[$geraet] ?? reset($alleMasse);
+            $wetter = $wetterMasse[$geraet] ?? reset($wetterMasse);
             $config = is_string($eintrag['Config']) ? json_decode($eintrag['Config'], true) : $eintrag['Config'];
             if (!is_array($config)) {
                 continue;
@@ -586,18 +595,22 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse)
                     continue;
                 }
                 $spalten = $config[$lage]['crossAxis'];
-                $fuerLage = $masse[($lage === 'landscape') ? 'quer' : 'hoch'];
+                $schluessel = ($lage === 'landscape') ? 'quer' : 'hoch';
+                $fuerLage = $masse[$schluessel];
                 $masseFuerKachel = [
                     'height' => max(1, (int) $fuerLage['hoehe']),
                     'width' => max(1, min((int) $fuerLage['breite'], $spalten)),
+                ];
+                $fuerWetter = $wetter[$schluessel];
+                $masseFuerWetter = [
+                    'height' => max(1, (int) $fuerWetter['hoehe']),
+                    'width' => max(1, min((int) $fuerWetter['breite'], $spalten)),
                 ];
                 $dim = (array) ($config[$lage]['individualDimensions'] ?? []);
                 foreach ($kachelIds as $id) {
                     $eigen = $masseFuerKachel;
                     if (IPS_GetInstance($id)['ModuleInfo']['ModuleID'] === RGV_WETTER) {
-                        // Die Wetterstation zeigt ein ganzes Werteraster --
-                        // sie bekommt die volle Breite und doppelte Höhe.
-                        $eigen = ['height' => $masseFuerKachel['height'] * 2, 'width' => $spalten];
+                        $eigen = $masseFuerWetter;
                     }
                     $dim[(string) $id] = $eigen;
                 }
@@ -931,7 +944,7 @@ if ($MIT_ADRESSKATALOG && isset($tree['gruppenadressen'])) {
     }
 }
 
-$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE);
+$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE, $WETTER_MASSE);
 
 // Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
 $verwaist = [];
