@@ -118,13 +118,15 @@ trait RegoVisuTile
      */
     protected function RegoSliderLine(string $id, string $onChange): string
     {
+        // Die Prozentanzeige steht links, damit die Spur bis an die rechte
+        // Kante laeuft und der Griff mit den Knoepfen darunter abschliesst.
         return '<div class="line">'
+            . '<span class="pct" id="' . $id . '-label">–</span>'
             . '<span class="chan"><span class="chan-track" id="' . $id . '">'
             . '<span class="chan-fill"></span><span class="chan-thumb"></span>'
             . '<input type="range" min="0" max="100" step="1" value="0" '
             . 'oninput="' . $onChange . 'Preview(this.value)" onchange="' . $onChange . '(this.value)">'
             . '</span></span>'
-            . '<span class="pct" id="' . $id . '-label">–</span>'
             . '</div>';
     }
 
@@ -238,7 +240,7 @@ svg{display:block}
     -webkit-appearance:none; appearance:none;
 }
 .pct{
-    flex:0 0 auto; min-width:3.2rem; text-align:right;
+    flex:0 0 auto; min-width:3.2rem; text-align:left;
     font-size:15px; font-weight:600; color:var(--text-faint);
     font-variant-numeric:tabular-nums;
 }
@@ -343,7 +345,10 @@ function regoFill(id, percent) {
         return;
     }
     var p = Math.max(0, Math.min(100, percent === null ? 0 : percent));
-    track.querySelector('.chan-thumb').style.left = p + '%';
+    // Der Griff laeuft um seinen halben Durchmesser eingerueckt, sonst haengt
+    // er bei 0 und 100 Prozent ueber die Spur hinaus.
+    track.querySelector('.chan-thumb').style.left =
+        'calc(13px + (100% - 26px) * ' + (p / 100) + ')';
 }
 JS;
     }
