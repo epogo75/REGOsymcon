@@ -39,7 +39,7 @@ $KNX_GATEWAY_INSTANCE_ID = 0; // CHANGE_ME -- die Instanz-ID deines KNX Gateway
 // quer also halbe und hochkant volle Breite. Unter zwei Zeilen Höhe schneidet
 // die Kachel Symbol und Knöpfe ab.
 $KACHEL_MASSE = [
-    'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
+    'Desktop' => ['quer' => ['breite' => 3,  'hoehe' => 1], 'hoch' => ['breite' => 3, 'hoehe' => 1]],
     'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
     'Tablet'  => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
 ];

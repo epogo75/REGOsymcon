@@ -180,7 +180,7 @@ body{
    Inhalt sitzt mittig, damit er auf hohen Kacheln nicht oben festhaengt. */
 .tile{
     display:flex; align-items:center; min-height:100%;
-    padding:var(--pad-top,10px) var(--pad-side,10px) var(--pad-bottom,10px);
+    padding:var(--pad-top,8px) var(--pad-side,8px) var(--pad-bottom,8px);
 }
 button{
     font-family:inherit; font-size:13px; font-weight:600; color:var(--text);
@@ -197,14 +197,14 @@ svg{display:block}
 .row{
     display:flex; align-items:center; gap:10px; width:100%;
     background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius-md); padding:10px 12px; box-shadow:var(--shadow-card);
+    border-radius:var(--radius-md); padding:7px 10px; box-shadow:var(--shadow-card);
 }
 .row-icon{
-    width:34px; height:34px; border-radius:var(--radius-md); flex:0 0 auto;
+    width:28px; height:28px; border-radius:var(--radius-sm); flex:0 0 auto;
     display:grid; place-items:center;
     background:var(--surface-3); color:var(--accent);
 }
-.row-icon svg{width:19px;height:19px}
+.row-icon svg{width:16px;height:16px}
 .row-main{min-width:0; flex:0 1 auto}
 .row-value{
     display:block; font-size:14px; font-weight:600; color:var(--text-muted);
@@ -216,7 +216,7 @@ svg{display:block}
 
 /* AN/AUS -- an ist rot, wie in REGObaseX1 */
 .onoff-button{
-    min-width:4rem; min-height:2.3rem; padding:.4rem .85rem;
+    min-width:3.5rem; min-height:2rem; padding:.3rem .7rem;
     border-radius:var(--radius-md); font-weight:700; font-size:13px; letter-spacing:.02em;
     transition:background-color .15s ease, border-color .15s ease, color .15s ease;
 }
@@ -244,16 +244,16 @@ svg{display:block}
 
 /* Auf / Stopp / Ab */
 .jalousie{display:flex; gap:6px}
-.jalousie button{min-height:2.3rem; padding:.4rem .75rem}
+.jalousie button{min-height:2rem; padding:.3rem .6rem}
 
 /* Soll-Temperatur */
 .stepper{display:flex; align-items:center; gap:6px}
-.stepper button{width:2.3rem; min-height:2.3rem; font-size:15px; display:grid; place-items:center}
+.stepper button{width:2rem; min-height:2rem; font-size:14px; display:grid; place-items:center}
 .stepper span{font-variant-numeric:tabular-nums; font-weight:600; min-width:3.6rem; text-align:center}
 
 /* Szenen */
 .scenes{display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end}
-.scenes button{min-height:2.3rem}
+.scenes button{min-height:2rem}
 .scenes button.primary{
     background:var(--accent-bg); border-color:color-mix(in srgb,var(--accent) 30%,transparent);
     color:var(--accent); font-weight:700;
