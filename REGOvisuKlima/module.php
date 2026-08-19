@@ -25,8 +25,7 @@ class REGOvisuKlima extends IPSModule
         $this->RegisterPropertyFloat('MinValue', 5);
         $this->RegisterPropertyFloat('MaxValue', 30);
 
-        // 2 = auch im Vollbild rendern; dort ist Platz fuer den Verlauf.
-        $this->SetVisualizationType(2);
+        $this->SetVisualizationType(1);
     }
 
     public function ApplyChanges(): void
@@ -75,8 +74,15 @@ class REGOvisuKlima extends IPSModule
     public function GetVisualizationTile(): string
     {
         // Wie im Detail-Dialog: links der Istwert, rechts der Sollwert-Steller.
+        // Ein Klick auf den Istwert oeffnet die Variable in Symcon -- dort
+        // steht der Verlauf.
+        $actual = $this->ReadPropertyInteger('ActualVariable');
+        $klick = ($actual != 0)
+            ? ' class="readout oeffnen" onclick="openObject(' . $actual . ')" title="Verlauf öffnen"'
+            : ' class="readout"';
+
         $inner = '<div class="line">'
-            . '<span class="readout">'
+            . '<span' . $klick . '>'
             . '<span class="readout-label">Ist</span>'
             . '<span class="readout-value" id="rego-ist">–</span>'
             . '</span>'
@@ -87,8 +93,7 @@ class REGOvisuKlima extends IPSModule
             . '<button type="button" aria-label="Soll-Temperatur erhöhen" '
             . 'onclick="requestAction(\'Setpoint\', 1)">+</button>'
             . '</span>'
-            . '</div>'
-            . $this->RegoChart($this->ReadPropertyInteger('ActualVariable'));
+            . '</div>';
 
         $script = <<<'JS'
 function regoRenderActual(value) {

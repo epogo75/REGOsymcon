@@ -34,8 +34,7 @@ class REGOvisuSensor extends IPSModule
         $this->RegisterPropertyString('SecondaryTextFalse', 'Nein');
         $this->RegisterPropertyInteger('BatteryVariable', 0);
 
-        // 2 = auch im Vollbild rendern; dort ist Platz fuer den Verlauf.
-        $this->SetVisualizationType(2);
+        $this->SetVisualizationType(1);
     }
 
     public function ApplyChanges(): void
@@ -60,12 +59,17 @@ class REGOvisuSensor extends IPSModule
 
     public function GetVisualizationTile(): string
     {
-        $inner = '<div class="sensor">'
+        // Ein Klick oeffnet die Variable in Symcon -- dort steht der Verlauf.
+        $variableID = $this->ReadPropertyInteger('ValueVariable');
+        $klick = ($variableID != 0)
+            ? ' class="sensor oeffnen" onclick="openObject(' . $variableID . ')" title="Verlauf öffnen"'
+            : ' class="sensor"';
+
+        $inner = '<div' . $klick . '>'
             . '<span class="sensor-value" id="rego-wert">–</span>'
             . '<span class="sensor-unit" id="rego-einheit"></span>'
             . '</div>'
-            . '<div class="badges" id="rego-badges"></div>'
-            . $this->RegoChart($this->ReadPropertyInteger('ValueVariable'));
+            . '<div class="badges" id="rego-badges"></div>';
 
         $script = <<<'JS'
 function regoRenderReading(daten) {

@@ -97,17 +97,13 @@ Aufrufen/Speichern-Bit) sind in `DPT_TEILE` hinterlegt.
 Funktionen ohne Häkchen „für die Visu freigegeben", ohne Gruppenadressen oder
 mit einem Typ ohne Kachel (`taster`, `url_aufruf`) werden übersprungen und am Ende einzeln mit Begründung genannt.
 
-## Verlauf beim Aufklappen
+## Verlauf
 
-Sensor- und Klimakacheln zeigen aufgeklappt den Verlauf der letzten 24 Stunden
-als Fläche mit Linie, gezeichnet aus den Werten der Archive-Instanz. In der
-kleinen Kachel bleibt er ausgeblendet.
-
-Symcon bietet Modulen keinen Schalter, um Kachel und Vollbild zu
-unterscheiden — beide rufen dieselbe Funktion auf. Die Kacheln nutzen deshalb
-die Höhe des iframes: `@media (min-height: 260px)` blendet den Verlauf ein.
-Dafür steht der Visualisierungstyp dieser beiden Module auf 2 (Kachel und
-Vollbild).
+Sensor- und Klimakacheln öffnen per Klick auf den Messwert das zugehörige
+Objekt in Symcon (`openObject` aus dem HTML-SDK). Den Verlauf zeigt damit
+Symcons eigene Detailansicht — die Kachel zeichnet keinen eigenen Graphen.
+Voraussetzung ist die Aufzeichnung, die das Deploy-Skript für alle Messwerte
+einschaltet.
 
 ## Design
 
