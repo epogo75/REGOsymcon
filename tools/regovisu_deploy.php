@@ -34,12 +34,15 @@ $REGODEPLOY_PASSWORD = "CHANGE_ME";
 $REGODEPLOY_PROJECT_ID = 0; // CHANGE_ME
 $KNX_GATEWAY_INSTANCE_ID = 0; // CHANGE_ME -- die Instanz-ID deines KNX Gateway
 
-// Maße einer Kachel im Raster der Kachel-Visualisierung. Am Rechner hat das
-// Raster 12 Spalten, 6 ist dort also halbe Breite; die Telefon-Konfiguration
-// bekommt immer die volle Breite. Zwei Rasterzeilen Höhe, sonst schneidet die
-// Kachel Symbol und Knöpfe ab.
-$KACHEL_BREITE = 6;
-$KACHEL_HOEHE = 2;
+// Kachelmaße je Zielgerät und Ausrichtung: Breite in Rasterspalten, Höhe in
+// Rasterzeilen. Quer hat das Raster 12 Spalten, hochkant 6 -- Breite 6 heißt
+// quer also halbe und hochkant volle Breite. Unter zwei Zeilen Höhe schneidet
+// die Kachel Symbol und Knöpfe ab.
+$KACHEL_MASSE = [
+    'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
+    'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
+    'Tablet'  => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
+];
 
 // Den vollständigen ETS-Adresskatalog mit anlegen? Er wird für die Kacheln
 // nicht gebraucht, ist aber praktisch, um immer alles im Projekt zu haben.
@@ -439,7 +442,7 @@ function variable_for_aktion($funktion, $aktion, $geraetId)
  * Konfigurationen bleiben erhalten, nur die Maße der eigenen Kacheln werden
  * gesetzt.
  */
-function richte_visualisierung_ein($visuRootId, $kachelIds, $breite, $hoehe)
+function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse)
 {
     $angepasst = 0;
 
@@ -460,8 +463,9 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $breite, $hoehe)
 
         $map = [];
         foreach ($liste as $eintrag) {
-            // Auf dem Telefon steht immer eine Kachel je Reihe.
-            $volleBreite = (strpos(strtolower($eintrag['Name']), 'phone') !== false);
+            // Der Name ist "~Desktop", "~Phone", "~Tablet" -- die Tilde faellt weg.
+            $geraet = ltrim($eintrag['Name'], '~');
+            $masse = $alleMasse[$geraet] ?? reset($alleMasse);
             $config = is_string($eintrag['Config']) ? json_decode($eintrag['Config'], true) : $eintrag['Config'];
             if (!is_array($config)) {
                 continue;
@@ -471,13 +475,14 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $breite, $hoehe)
                     continue;
                 }
                 $spalten = $config[$lage]['crossAxis'];
-                $masse = [
-                    'height' => $hoehe,
-                    'width' => $volleBreite ? $spalten : min($breite, $spalten),
+                $fuerLage = $masse[($lage === 'landscape') ? 'quer' : 'hoch'];
+                $masseFuerKachel = [
+                    'height' => max(1, (int) $fuerLage['hoehe']),
+                    'width' => max(1, min((int) $fuerLage['breite'], $spalten)),
                 ];
                 $dim = (array) ($config[$lage]['individualDimensions'] ?? []);
                 foreach ($kachelIds as $id) {
-                    $dim[(string) $id] = $masse;
+                    $dim[(string) $id] = $masseFuerKachel;
                 }
                 $config[$lage]['individualDimensions'] = empty($dim) ? new stdClass() : $dim;
                 foreach (['individualConfig', 'individualPositions'] as $feld) {
@@ -745,7 +750,7 @@ if ($MIT_ADRESSKATALOG && isset($tree['gruppenadressen'])) {
     }
 }
 
-$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_BREITE, $KACHEL_HOEHE);
+$visuAngepasst = richte_visualisierung_ein($visuId, $kachelIds, $KACHEL_MASSE);
 
 // Was es im Projekt nicht mehr gibt: einsammeln statt löschen.
 $verwaist = [];
@@ -786,8 +791,13 @@ if ($MIT_ADRESSKATALOG) {
     echo sprintf("  Katalog:  %d Adressen neu, %d vorhanden, %d ohne Symcon-Zuordnung\n",
         $gaNeu, $gaVorhanden, $gaUebersprungen);
 }
-echo sprintf("  Visu:     %d Visualisierung(en) starten auf \"%s\", Kacheln %d x %d im Raster\n",
-    $visuAngepasst, IPS_GetName($visuId), $KACHEL_BREITE, $KACHEL_HOEHE);
+$masseText = [];
+foreach ($KACHEL_MASSE as $geraet => $m) {
+    $masseText[] = sprintf('%s %dx%d/%dx%d', $geraet,
+        $m['quer']['breite'], $m['quer']['hoehe'], $m['hoch']['breite'], $m['hoch']['hoehe']);
+}
+echo sprintf("  Visu:     %d Visualisierung(en) starten auf \"%s\"; Kacheln quer/hoch: %s\n",
+    $visuAngepasst, IPS_GetName($visuId), implode(', ', $masseText));
 echo sprintf("  Verwaist: %d Objekte (%d verschoben)\n", count($verwaist), $verschoben);
 
 if (!empty($hinweise)) {
