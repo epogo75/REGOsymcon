@@ -1241,8 +1241,28 @@ function sync_modbus_zaehler($zaehler, $technikId, $kachelParentId, &$index, &$v
     return ['kachel' => $kachelId, 'variablen' => array_values($variablen)];
 }
 
+/**
+ * Symcons Sprache setzen, falls noch keine gewählt ist.
+ *
+ * Beschriftungen in Symcons eigenen Profilen sind intern englisch ("Off",
+ * "On") und werden erst beim Anzeigen übersetzt. Serverseitig -- also auch in
+ * der Mitgliederliste einer Szene -- klappt das nur mit gesetzter Sprache; auf
+ * einem frischen Symcon steht sie leer und es bliebe bei "Off". Eine bereits
+ * gewählte Sprache bleibt unangetastet.
+ */
+function stelle_sprache_ein(): string
+{
+    $aktuell = (string) @IPS_GetOption('Locale');
+    if ($aktuell !== '') {
+        return $aktuell;
+    }
+    @IPS_SetOption('Locale', 'de_DE');
+    return 'de_DE (gesetzt, wirkt nach Neustart)';
+}
+
 // ---- Ablauf ----
 
+$sprache = stelle_sprache_ein();
 $modulStatus = ensure_module_installed();
 
 // Gateway: die von REGOdeploy konfigurierte Instanz, sonst die einzige im
@@ -1689,6 +1709,7 @@ foreach ($verwaist as $ident => $info) {
     }
 }
 
+echo "Sprache: $sprache\n";
 echo "REGOvisu-Deploy fertig.\n";
 echo "  Modul:    $modulStatus\n";
 echo sprintf("  Struktur: %d Räume unter \"Visu %s\"\n", $raeume, $tree['project_name']);
