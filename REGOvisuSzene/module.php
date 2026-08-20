@@ -35,6 +35,15 @@ class REGOvisuSzene extends IPSModule
 
     public function RequestAction($Ident, $Value): void
     {
+        // Eine Symcon-Szene wird aufgerufen statt einer Nummer geschrieben.
+        if ($Ident === 'SceneInstance') {
+            $instanz = (int) $Value;
+            if (IPS_InstanceExists($instanz)) {
+                RGVSS_Aufrufen($instanz);
+            }
+            return;
+        }
+
         if ($Ident !== 'Scene') {
             return;
         }
@@ -75,7 +84,21 @@ class REGOvisuSzene extends IPSModule
         $buttons = '';
         foreach ($scenes as $scene) {
             $number = (int) ($scene['Number'] ?? 0);
-            $label = trim((string) ($scene['Label'] ?? '')) ?: ('Szene ' . $number);
+            $instanz = (int) ($scene['InstanceID'] ?? 0);
+            $label = trim((string) ($scene['Label'] ?? ''));
+
+            if (($instanz != 0) && IPS_InstanceExists($instanz)) {
+                if ($label === '') {
+                    $label = IPS_GetName($instanz);
+                }
+                $buttons .= '<button type="button" onclick="requestAction(\'SceneInstance\', ' . $instanz . ')">'
+                    . htmlspecialchars($label) . '</button>';
+                continue;
+            }
+
+            if ($label === '') {
+                $label = 'Szene ' . $number;
+            }
             $buttons .= '<button type="button" onclick="requestAction(\'Scene\', ' . $number . ')">'
                 . htmlspecialchars($label) . '</button>';
         }

@@ -422,6 +422,11 @@ svg{display:block}
 .buttons{display:flex; gap:8px; width:100%}
 .buttons button{flex:1 1 0; min-width:0; min-height:2.5rem}
 
+/* Aktive Szene: alle Mitglieder stehen auf ihrem Zielwert */
+.buttons button.szene-aktiv{
+    background:var(--accent-bg); border-color:var(--accent); color:var(--accent);
+}
+
 /* Der URL-Aufruf hat nur einen Knopf -- der nimmt die ganze Kachel ein,
    statt oben als schmaler Streifen zu sitzen. */
 .tile[data-type="url"]{align-items:stretch}

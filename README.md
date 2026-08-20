@@ -29,7 +29,8 @@ Browser öffnen, die Regler und Knöpfe reagieren.
 | REGOvisu Dimmen | AN/AUS-Knopf, Prozentregler, Prozentwert |
 | REGOvisu Jalousie | Position in %, Auf / Stopp / Ab |
 | REGOvisu Klima | „Ist 21,5 °C", Stepper − / Soll / + |
-| REGOvisu Szene | Ein Knopf je Szene |
+| REGOvisu Szene | Ein Knopf je Szene — KNX-Szenennummer oder Symcon-Szene |
+| REGOvisu Symcon-Szene | Eine Szene, die ihre Mitglieder selbst kennt: aufrufen und speichern |
 | REGOvisu Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
 | REGOvisu Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
 | REGOvisu Info | Datum, Sonnenauf- und -untergang, Außentemperatur — steht auf der Startseite |
@@ -79,6 +80,37 @@ erledigen damit den kompletten Aufbau.
 
 Ohne REGOdeploy trägt man die fünf Werte von Hand ein; die Gateway-Instanz
 findet das Skript notfalls selbst.
+
+## Symcon-Szenen
+
+Die KNX-Szene schickt nur eine Nummer auf den Bus; was sie bewirkt, steht in
+den Aktoren. Eine **Symcon-Szene** kennt ihre Mitglieder dagegen selbst — und
+die dürfen quer über alle Gewerke liegen: KNX-Licht, Modbus-Sollwert, ein
+Merker.
+
+Eine Instanz ist eine Szene. In der Mitgliederliste stehen Variable,
+Zielwert, ein Häkchen und eine optionale Verzögerung. Zwei Aktionen, beide
+auch aus Ereignissen und Skripten aufrufbar:
+
+| Funktion | Wirkung |
+|---|---|
+| `RGVSS_Aufrufen($id)` | schreibt die Zielwerte; gibt zurück, wie viele Mitglieder geschrieben wurden |
+| `RGVSS_Speichern($id)` | übernimmt den aktuellen Zustand als neue Zielwerte |
+
+Geschrieben wird über die Aktion der Zielvariable, also mit echtem Telegramm;
+nur wenn keine hinterlegt ist, wird der Wert direkt gesetzt. „Nur schreiben,
+was abweicht" spart Telegramme.
+
+Stehen alle Mitglieder auf ihrem Zielwert, gilt die Szene als **aktiv** und
+der Knopf wird in Akzentfarbe hervorgehoben. Fließkommawerte werden dabei mit
+Toleranz verglichen — eine Rückmeldung vom Bus trifft den gespeicherten Wert
+sonst nie genau.
+
+„Speichern" gibt es bewusst nur in der Instanz, nicht in der Kachel: ein
+Fehlgriff in der Visu würde die Szene überschreiben.
+
+Die Szenen-Kachel kann beides ansteuern — steht in einer Zeile eine
+Symcon-Szene, wird sie aufgerufen, sonst die KNX-Nummer geschrieben.
 
 ## Modbus-Energiezähler
 

@@ -1,0 +1,80 @@
+{
+    "elements": [
+        {
+            "type": "Label",
+            "caption": "Eine Szene: beim Aufrufen bekommen alle Mitglieder ihren Zielwert. „Speichern“ übernimmt dafür den aktuellen Zustand."
+        },
+        {
+            "type": "List",
+            "name": "Members",
+            "caption": "Mitglieder",
+            "rowCount": 12,
+            "add": true,
+            "delete": true,
+            "changeOrder": true,
+            "columns": [
+                {
+                    "caption": "Aktiv",
+                    "name": "Active",
+                    "width": "70px",
+                    "add": true,
+                    "edit": {
+                        "type": "CheckBox"
+                    }
+                },
+                {
+                    "caption": "Variable",
+                    "name": "VariableID",
+                    "width": "auto",
+                    "add": 0,
+                    "edit": {
+                        "type": "SelectVariable"
+                    }
+                },
+                {
+                    "caption": "Zielwert",
+                    "name": "Value",
+                    "width": "160px",
+                    "add": "",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    }
+                },
+                {
+                    "caption": "Verzögerung",
+                    "name": "Delay",
+                    "width": "130px",
+                    "add": 0,
+                    "edit": {
+                        "type": "NumberSpinner",
+                        "minimum": 0,
+                        "maximum": 60000,
+                        "suffix": "ms"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "CheckBox",
+            "name": "OnlyChanged",
+            "caption": "Nur schreiben, was abweicht"
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "Label",
+            "caption": "Beschriftung des Knopfs"
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Szene aufrufen",
+            "onClick": "RGVSS_Aufrufen($id);"
+        },
+        {
+            "type": "Button",
+            "caption": "Aktuellen Zustand speichern",
+            "onClick": "RGVSS_Speichern($id); echo 'Zielwerte übernommen.';"
+        }
+    ]
+}
