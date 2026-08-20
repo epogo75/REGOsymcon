@@ -639,7 +639,7 @@ JS;
         foreach ($punkte as $index => $punkt) {
             $punkte[$index]['Tage'] = $this->Tagetext($punkt);
             $punkte[$index]['Zeit'] = $this->Zeittext($punkt);
-            $punkte[$index]['Ziel'] = $this->Zieltext($punkt);
+            $punkte[$index]['Ziel'] = $this->Zieltext($punkt, true);
         }
 
         return $punkte;
@@ -685,22 +685,28 @@ JS;
         return sprintf('%02d:%02d', (int) ($zeit['hour'] ?? 0), (int) ($zeit['minute'] ?? 0));
     }
 
-    private function Zieltext(array $punkt): string
+    /**
+     * $mitOrt stellt den Ordner voran, in dem das Ziel liegt. In der Liste ist
+     * das der Raum -- "Deckenlicht" gibt es in jedem zweiten, erst
+     * "Speicher · Deckenlicht" sagt, welches gemeint ist. Auf der Kachel ist
+     * dafuer kein Platz, dort steht nur der Name.
+     */
+    private function Zieltext(array $punkt, bool $mitOrt = false): string
     {
         $ziel = (int) ($punkt['TargetID'] ?? 0);
         if (($ziel == 0) || !IPS_ObjectExists($ziel)) {
             return 'kein Ziel';
         }
         if ($this->IstSzene($ziel)) {
-            return IPS_GetName($ziel) . ' aufrufen';
+            return $this->Zielname($ziel, $ziel, $mitOrt) . ' aufrufen';
         }
 
         $variable = $this->Zielvariable($ziel);
         if ($variable == 0) {
-            return IPS_GetName($ziel) . ' — keine bedienbare Variable';
+            return $this->Zielname($ziel, $ziel, $mitOrt) . ' — keine bedienbare Variable';
         }
 
-        return $this->Zielname($ziel, $variable) . ' → '
+        return $this->Zielname($ziel, $variable, $mitOrt) . ' → '
             . $this->RegoWertText($variable, $this->RegoZielwert($variable, $punkt['Value'] ?? ''));
     }
 
@@ -708,16 +714,28 @@ JS;
      * "Value" sagt niemandem etwas -- dann nennt die Anzeige das Geraet, dem
      * die Variable gehoert.
      */
-    private function Zielname(int $objektID, int $variable): string
+    private function Zielname(int $objektID, int $variable, bool $mitOrt = false): string
     {
+        $benannt = $objektID;
         $name = IPS_GetName($objektID);
-        if (($objektID !== $variable) || !in_array($name, ['Value', 'Wert'], true)) {
+
+        // "Value" sagt niemandem etwas -- dann nennt die Anzeige das Geraet,
+        // dem die Variable gehoert, und der Ordner rueckt eine Ebene hoeher.
+        if (($objektID === $variable) && in_array($name, ['Value', 'Wert'], true)) {
+            $eltern = IPS_GetObject($variable)['ParentID'];
+            if ($eltern > 0) {
+                $benannt = $eltern;
+                $name = IPS_GetName($eltern);
+            }
+        }
+
+        if (!$mitOrt) {
             return $name;
         }
 
-        $eltern = IPS_GetObject($variable)['ParentID'];
+        $ordner = IPS_GetObject($benannt)['ParentID'];
 
-        return ($eltern > 0) ? IPS_GetName($eltern) : $name;
+        return ($ordner > 0) ? IPS_GetName($ordner) . ' · ' . $name : $name;
     }
 
     private function Punkte(): array
