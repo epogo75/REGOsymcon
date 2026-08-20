@@ -44,20 +44,6 @@ $KACHEL_MASSE = [
     'Tablet'  => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
 ];
 
-// Modbus-Energiezähler. Host, Port und Slave-ID stehen hier, bis REGOdeploy
-// einen eigenen Punkt dafür hat. "raum_id" ist die Raum-ID aus REGOdeploy;
-// ohne sie steht die Kachel direkt im Visu-Ordner.
-$MODBUS_ZAEHLER = [
-    [
-        'name'    => 'Energiezähler',
-        'host'    => '192.168.1.254',
-        'port'    => 502,
-        'slave'   => 33,
-        'poller'  => 10000,
-        'raum_id' => null,
-    ],
-];
-
 // Zeitspanne der Diagramme in der Visualisierung:
 // 0 Stunde, 1 Tag, 2 Woche, 3 Monat, 4 Jahr, 5 Jahrzehnt.
 $GRAPH_ZEITSPANNE = 0;
@@ -1340,6 +1326,23 @@ foreach ($tree['etagen'] as $etage) {
             }
         }
     }
+}
+
+// Modbus-Energiezähler: Host, Port und Slave-ID stehen in REGOdeploy unter
+// Symcon > Modbus, nicht mehr im Skript.
+$MODBUS_ZAEHLER = [];
+foreach ((array) http_get_json("$REGODEPLOY_BASE_URL/api/projects/$REGODEPLOY_PROJECT_ID/symcon/modbus", $token) as $eintrag) {
+    if (!is_array($eintrag) || !isset($eintrag['host'])) {
+        continue;
+    }
+    $MODBUS_ZAEHLER[] = [
+        'name'    => $eintrag['name'],
+        'host'    => $eintrag['host'],
+        'port'    => (int) $eintrag['port'],
+        'slave'   => (int) $eintrag['slave_id'],
+        'poller'  => (int) $eintrag['poller_ms'],
+        'raum_id' => $eintrag['raum_id'],
+    ];
 }
 
 $katalog = http_get_json(

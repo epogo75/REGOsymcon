@@ -5,6 +5,25 @@
             "caption": "Eine Szene: beim Aufrufen bekommen alle Mitglieder ihren Zielwert. „Speichern“ übernimmt dafür den aktuellen Zustand."
         },
         {
+            "type": "Label",
+            "caption": "Aus einem Raum lassen sich alle bedienbaren Variablen der REGOvisu-Kacheln auf einmal übernehmen — Schalten, Helligkeit, Rollladenposition und Soll-Temperatur."
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "SelectCategory",
+                    "name": "RoomCategory",
+                    "caption": "Raum"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Mitglieder aus Raum übernehmen",
+                    "onClick": "echo RGVSS_MitgliederAusRaum($id, $RoomCategory) . ' Mitglieder übernommen.';"
+                }
+            ]
+        },
+        {
             "type": "List",
             "name": "Members",
             "caption": "Mitglieder",

@@ -26,6 +26,7 @@ class REGOvisuSymconSzene extends IPSModule
         $this->RegisterPropertyString('Members', '[]');
         $this->RegisterPropertyBoolean('OnlyChanged', true);
         $this->RegisterPropertyString('Label', 'Aufrufen');
+        $this->RegisterPropertyInteger('RoomCategory', 0);
 
         $this->SetVisualizationType(1);
     }
@@ -115,6 +116,69 @@ class REGOvisuSymconSzene extends IPSModule
         IPS_ApplyChanges($this->InstanceID);
 
         return $uebernommen;
+    }
+
+    /**
+     * Uebernimmt die bedienbaren Variablen aller REGOvisu-Kacheln eines Raums
+     * als Mitglieder -- mit dem aktuellen Zustand als Zielwert.
+     *
+     * Bewusst nur, was eine Szene sinnvoll setzen kann: Schalten, Helligkeit,
+     * Rollladenposition und Soll-Temperatur. Tastbefehle wie Auf/Ab/Stopp
+     * haben keinen Zustand, Messwerte nehmen nichts entgegen.
+     */
+    public function MitgliederAusRaum(int $kategorieId): int
+    {
+        if (($kategorieId == 0) || !IPS_ObjectExists($kategorieId)) {
+            return 0;
+        }
+
+        // Kachel-Modul => die Eigenschaften, die eine Szene setzen kann.
+        $ausKachel = [
+            '{E5F57876-C2BE-4C9B-9D1E-237D9010ADA8}' => ['SwitchVariable'],                        // Schalten
+            '{A4507CF7-C921-467C-BD01-699C862B9F5C}' => ['SwitchVariable', 'DimVariable'],          // Dimmen
+            '{23F455EC-9236-480B-B02F-E10CE43DBDE2}' => ['PositionVariable'],                       // Jalousie
+            '{FEB37553-F02A-4F1B-A669-15BCD71E0712}' => ['SetpointVariable'],                       // Klima
+        ];
+
+        $mitglieder = $this->Members();
+        $vorhanden = [];
+        foreach ($mitglieder as $mitglied) {
+            $vorhanden[(int) $mitglied['VariableID']] = true;
+        }
+
+        $neu = 0;
+        foreach (IPS_GetChildrenIDs($kategorieId) as $kind) {
+            if (!IPS_InstanceExists($kind)) {
+                continue;
+            }
+            $modul = IPS_GetInstance($kind)['ModuleInfo']['ModuleID'];
+            if (!isset($ausKachel[$modul])) {
+                continue;
+            }
+
+            $config = json_decode(IPS_GetConfiguration($kind), true);
+            foreach ($ausKachel[$modul] as $eigenschaft) {
+                $variableID = (int) ($config[$eigenschaft] ?? 0);
+                if (($variableID == 0) || !IPS_VariableExists($variableID) || isset($vorhanden[$variableID])) {
+                    continue;
+                }
+                $vorhanden[$variableID] = true;
+                $mitglieder[] = [
+                    'Active' => true,
+                    'VariableID' => $variableID,
+                    'Value' => $this->AlsText(GetValue($variableID)),
+                    'Delay' => 0,
+                ];
+                $neu++;
+            }
+        }
+
+        if ($neu > 0) {
+            IPS_SetProperty($this->InstanceID, 'Members', json_encode($mitglieder));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+
+        return $neu;
     }
 
     public function GetVisualizationTile(): string

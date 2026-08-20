@@ -109,6 +109,13 @@ sonst nie genau.
 „Speichern" gibt es bewusst nur in der Instanz, nicht in der Kachel: ein
 Fehlgriff in der Visu würde die Szene überschreiben.
 
+**Mitglieder aus einem Raum übernehmen:** im Formular einen Raum wählen und
+den Knopf drücken — die bedienbaren Variablen aller REGOvisu-Kacheln dieses
+Raums landen als Zeilen in der Liste, mit dem aktuellen Zustand als Zielwert.
+Übernommen wird nur, was eine Szene sinnvoll setzen kann: Schalten,
+Helligkeit, Rollladenposition und Soll-Temperatur. Tastbefehle wie Auf/Ab/
+Stopp haben keinen Zustand, Messwerte nehmen nichts entgegen.
+
 Die Szenen-Kachel kann beides ansteuern — steht in einer Zeile eine
 Symcon-Szene, wird sie aufgerufen, sonst die KNX-Nummer geschrieben.
 
@@ -116,9 +123,8 @@ Symcon-Szene, wird sie aufgerufen, sonst die KNX-Nummer geschrieben.
 
 Das Deploy-Skript legt einen Finder-7M-Zähler komplett an: Client Socket,
 ModBus Gateway und je Messgröße eine Adress-Instanz, dazu die Kachel, die
-Verknüpfungen und die Aufzeichnung. Konfiguriert wird er oben im Skript
-(`$MODBUS_ZAEHLER`) mit Host, Port, Slave-ID, Poll-Intervall und optional der
-Raum-ID aus REGOdeploy.
+Verknüpfungen und die Aufzeichnung. Host, Port, Slave-ID, Abfrageintervall und Raum stehen in REGOdeploy unter
+**Symcon > Modbus**; das Skript liest sie von dort.
 
 Der Zähler spricht **Modbus RTU über TCP** — RTU-Rahmen mit CRC über eine
 TCP-Verbindung, nicht Modbus TCP. In Symcon heißt das `GatewayMode = 2`. Die
