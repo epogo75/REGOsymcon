@@ -72,6 +72,115 @@ trait RegoVisuTile
     }
 
     /**
+     * Ein gespeicherter Zielwert, im Typ der Variable.
+     *
+     * Symcons Bedienelement "SelectValue" legt ihn als JSON ab (true, 50,
+     * "Text"). Ältere Konfigurationen tragen dort noch die Beschriftung --
+     * "Aus", "An" --, die bleibt lesbar.
+     */
+    protected function RegoZielwert(int $variableID, $roh)
+    {
+        if (!is_string($roh)) {
+            return $roh;
+        }
+        if (($variableID == 0) || !IPS_VariableExists($variableID)) {
+            return $roh;
+        }
+
+        $dekodiert = json_decode($roh, true);
+        if (($dekodiert === null) && (trim($roh) !== 'null')) {
+            return $this->RegoAusText($variableID, $roh);
+        }
+
+        switch (IPS_GetVariable($variableID)['VariableType']) {
+            case 0:
+                return (bool) $dekodiert;
+            case 1:
+                return (int) $dekodiert;
+            case 2:
+                return (float) $dekodiert;
+            default:
+                return (string) $dekodiert;
+        }
+    }
+
+    /**
+     * Wie ein Wert in einer Liste steht: so, wie Symcon ihn überall zeigt --
+     * mit den Beschriftungen und der Einheit des Profils.
+     */
+    protected function RegoWertText(int $variableID, $wert): string
+    {
+        if (($variableID > 0) && IPS_VariableExists($variableID)) {
+            $text = @GetValueFormattedEx($variableID, $wert);
+            if (is_string($text) && ($text !== '')) {
+                return $text;
+            }
+        }
+        if (is_bool($wert)) {
+            return $wert ? '1' : '0';
+        }
+
+        return (string) $wert;
+    }
+
+    /**
+     * Ein als Text hinterlegter Zielwert bekommt den Typ der Variable.
+     * Komma und Punkt gelten beide als Dezimaltrenner.
+     */
+    private function RegoAusText(int $variableID, string $text)
+    {
+        switch (IPS_GetVariable($variableID)['VariableType']) {
+            case 0:
+                // Zuerst die Beschriftungen des Profils ("An", "Auf"), danach
+                // die üblichen Schreibweisen.
+                $profil = $this->RegoProfil($variableID);
+                $gesucht = mb_strtolower(trim($text));
+                if ($profil !== null) {
+                    foreach ($profil['Associations'] as $association) {
+                        $name = $association['Name'];
+                        if ((mb_strtolower($name) === $gesucht)
+                            || (mb_strtolower(IPS_Translate($this->InstanceID, $name)) === $gesucht)) {
+                            return (bool) $association['Value'];
+                        }
+                    }
+                }
+                return in_array($gesucht, ['1', 'true', 'an', 'ja', 'ein', 'auf'], true);
+            case 1:
+                return (int) round((float) str_replace(',', '.', $text));
+            case 2:
+                return (float) str_replace(',', '.', $text);
+            default:
+                return $text;
+        }
+    }
+
+    /**
+     * Das wirksame Profil einer Ja/Nein-Variable, sonst null.
+     */
+    private function RegoProfil(int $variableID): ?array
+    {
+        if (!IPS_VariableExists($variableID)) {
+            return null;
+        }
+        $variable = IPS_GetVariable($variableID);
+        if ($variable['VariableType'] != 0) {
+            return null;
+        }
+
+        $name = $variable['VariableCustomProfile'];
+        if ($name === '') {
+            $name = $variable['VariableProfile'];
+        }
+        if (($name === '') || !IPS_VariableProfileExists($name)) {
+            return null;
+        }
+
+        $profil = IPS_GetVariableProfile($name);
+
+        return empty($profil['Associations']) ? null : $profil;
+    }
+
+    /**
      * Rundet einen Prozentwert auf den Datentyp der Zielvariable.
      */
     protected function RegoCastNumber(int $variableID, float $value)

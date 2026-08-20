@@ -37,6 +37,7 @@ Browser öffnen, die Regler und Knöpfe reagieren.
 | REGOvisu Taster | Ein Knopf, der auslöst — ohne Zustandsanzeige, weil ein Taster keinen hat |
 | REGOvisu URL-Aufruf | Ein Knopf, der eine Seite in einem neuen Tab öffnet |
 | REGOvisu Zähler | Leistung, Zählerstand und Heute, dahinter die weiteren Messwerte |
+| REGOvisu Zeitschaltuhr | Nächste Schaltung mit Ziel, AN/AUS und „Überspringen" |
 
 ## Installation
 
@@ -128,6 +129,44 @@ Stopp haben keinen Zustand, Messwerte nehmen nichts entgegen.
 
 Die Szenen-Kachel kann beides ansteuern — steht in einer Zeile eine
 Symcon-Szene, wird sie aufgerufen, sonst die KNX-Nummer geschrieben.
+
+## Zeitschaltuhren
+
+Vorbild ist die Zeitschaltuhr von REGObaseX1. Eine Instanz ist eine Uhr, und
+eine Uhr ist entweder eine **Tagesuhr** — jeden Tag derselbe Ablauf — oder eine
+**Wochenuhr**, bei der jeder Schaltpunkt seine eigenen Wochentage hat.
+
+Ein Schaltpunkt hat eine Zeit und ein Ziel:
+
+| | |
+|---|---|
+| Zeit | feste Uhrzeit, **Sonnenaufgang** oder **Sonnenuntergang**, jeweils mit Verschiebung in Minuten |
+| Ziel | eine Variable, eine REGOvisu-Kachel oder eine Symcon-Szene |
+| Zielwert | Symcons eigenes Bedienelement, passend zum Profil — Aus/An, Prozent, Grad |
+
+Zeigt das Ziel auf eine Kachel, ist die Variable gemeint, die sie bedient: bei
+Schalten der Schaltbefehl, bei Dimmen die Helligkeit, bei Jalousie die Position,
+bei Klima die Soll-Temperatur. Eine Szene braucht keinen Wert, sie wird
+aufgerufen.
+
+| Funktion | |
+|---|---|
+| `RGVZU_NaechsteSchaltung($id)` | „heute 20:18", „morgen 06:30", „Uhr ist aus" |
+| `RGVZU_Ausloesen($id, $index)` | schaltet einen Punkt sofort, unabhängig von seiner Zeit |
+| `RGVZU_Ueberspringen($id)` | lässt den nächsten Termin einmalig aus; noch einmal aufgerufen, setzt er ihn wieder ein |
+| `RGVZU_Planen($id)` | stellt den Wecker neu |
+
+Die Kachel zeigt die nächste Schaltung mit ihrem Ziel und hat zwei Knöpfe: die
+Uhr an- und ausschalten, und den nächsten Termin auslassen. Der Zustand der Uhr
+ist eine echte Variable — eine Szene kann sie also mitschalten, und der Verlauf
+lässt sich aufzeichnen.
+
+Die Sonnenzeiten rechnet die Uhr aus den Koordinaten der Standort-Instanz von
+Symcon; eine andere lässt sich im Formular eintragen. Weiter als eine Stunde
+plant sie nicht voraus — so wandern Sonnenzeiten, Sommerzeit und Änderungen an
+den Punkten von selbst mit. **Verpasste Schaltungen holt sie nicht nach:** was
+während eines Neustarts fällig war, ist vorbei. Das ist so gewollt und in der
+Vorlage genauso.
 
 ## Modbus-Energiezähler
 

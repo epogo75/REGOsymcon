@@ -160,7 +160,7 @@ class REGOvisuSymconSzene extends IPSModule
                 continue;
             }
 
-            $ziel = $this->Wert($variableID, $mitglied['Value'] ?? '');
+            $ziel = $this->RegoZielwert($variableID, $mitglied['Value'] ?? '');
             if ($nurAbweichende && $this->Gleich(GetValue($variableID), $ziel)) {
                 continue;
             }
@@ -194,7 +194,7 @@ class REGOvisuSymconSzene extends IPSModule
                 continue;
             }
             $mitglieder[$index]['Value'] = json_encode(GetValue($variableID));
-            $mitglieder[$index]['Anzeige'] = $this->Beschriftung($variableID, GetValue($variableID));
+            $mitglieder[$index]['Anzeige'] = $this->RegoWertText($variableID, GetValue($variableID));
             $uebernommen++;
         }
 
@@ -252,7 +252,7 @@ class REGOvisuSymconSzene extends IPSModule
                 $mitglieder[] = [
                     'Active' => true,
                     'VariableID' => $variableID,
-                    'Anzeige' => $this->Beschriftung($variableID, GetValue($variableID)),
+                    'Anzeige' => $this->RegoWertText($variableID, GetValue($variableID)),
                     'Value' => json_encode(GetValue($variableID)),
                     'Delay' => 0,
                 ];
@@ -290,6 +290,21 @@ JS;
     }
 
     /**
+     * Die Mitgliederliste mit frisch beschrifteter Spalte "Zielwert".
+     */
+    private function Beschriftet(array $mitglieder): array
+    {
+        foreach ($mitglieder as $index => $mitglied) {
+            $variableID = (int) ($mitglied['VariableID'] ?? 0);
+            $mitglieder[$index]['Anzeige'] = (($variableID > 0) && IPS_VariableExists($variableID))
+                ? $this->RegoWertText($variableID, $this->RegoZielwert($variableID, $mitglied['Value'] ?? ''))
+                : 'Variable fehlt';
+        }
+
+        return $mitglieder;
+    }
+
+    /**
      * Aktiv heißt: jedes aktive Mitglied steht auf seinem Zielwert.
      */
     private function IstAktiv(): bool
@@ -304,129 +319,13 @@ JS;
             if (($variableID == 0) || !IPS_VariableExists($variableID)) {
                 continue;
             }
-            if (!$this->Gleich(GetValue($variableID), $this->Wert($variableID, $mitglied['Value'] ?? ''))) {
+            if (!$this->Gleich(GetValue($variableID), $this->RegoZielwert($variableID, $mitglied['Value'] ?? ''))) {
                 return false;
             }
             $geprueft++;
         }
 
         return $geprueft > 0;
-    }
-
-    /**
-     * Der Zielwert steht als Text in der Liste; hier bekommt er den Typ der
-     * Zielvariable. Komma und Punkt gelten beide als Dezimaltrenner.
-     */
-    private function NachTyp(int $variableID, string $text)
-    {
-        switch (IPS_GetVariable($variableID)['VariableType']) {
-            case 0:
-                // Zuerst die Beschriftungen des Profils ("An", "Auf",
-                // "ausgelöst"), danach die ueblichen Schreibweisen.
-                $profil = $this->Profil($variableID);
-                if ($profil !== null) {
-                    $gesucht = mb_strtolower(trim($text));
-                    foreach ($profil['Associations'] as $association) {
-                        $name = $association['Name'];
-                        // Beide Schreibweisen gelten: die des Profils und die
-                        // uebersetzte, die beim Speichern eingetragen wird.
-                        if ((mb_strtolower($name) === $gesucht)
-                            || (mb_strtolower(IPS_Translate($this->InstanceID, $name)) === $gesucht)) {
-                            return (bool) $association['Value'];
-                        }
-                    }
-                }
-                return in_array(mb_strtolower(trim($text)), ['1', 'true', 'an', 'ja', 'ein', 'auf'], true);
-            case 1:
-                return (int) round((float) str_replace(',', '.', $text));
-            case 2:
-                return (float) str_replace(',', '.', $text);
-            default:
-                return $text;
-        }
-    }
-
-    /**
-     * Der gespeicherte Zielwert, im Typ der Variable.
-     *
-     * Das Bedienelement des Formulars legt ihn als JSON ab (true, 50,
-     * "Text"). Ältere Zeilen tragen dort noch die Beschriftung -- "Aus",
-     * "An" --, die bleibt lesbar.
-     */
-    private function Wert(int $variableID, $roh)
-    {
-        if (!is_string($roh)) {
-            return $roh;
-        }
-
-        $dekodiert = json_decode($roh, true);
-        if (($dekodiert === null) && (trim($roh) !== 'null')) {
-            return $this->NachTyp($variableID, $roh);
-        }
-
-        switch (IPS_GetVariable($variableID)['VariableType']) {
-            case 0:
-                return (bool) $dekodiert;
-            case 1:
-                return (int) $dekodiert;
-            case 2:
-                return (float) $dekodiert;
-            default:
-                return (string) $dekodiert;
-        }
-    }
-
-    /**
-     * Wie der Zielwert in der Liste steht: so, wie Symcon ihn überall zeigt
-     * -- mit den Beschriftungen und der Einheit des Profils.
-     */
-    private function Beschriftung(int $variableID, $wert): string
-    {
-        if (($variableID > 0) && IPS_VariableExists($variableID)) {
-            $text = @GetValueFormattedEx($variableID, $wert);
-            if (is_string($text) && ($text !== '')) {
-                return $text;
-            }
-        }
-        if (is_bool($wert)) {
-            return $wert ? '1' : '0';
-        }
-        return (string) $wert;
-    }
-
-    /**
-     * Die Mitgliederliste mit frisch beschrifteter Spalte "Zielwert".
-     */
-    private function Beschriftet(array $mitglieder): array
-    {
-        foreach ($mitglieder as $index => $mitglied) {
-            $variableID = (int) ($mitglied['VariableID'] ?? 0);
-            $mitglieder[$index]['Anzeige'] = (($variableID > 0) && IPS_VariableExists($variableID))
-                ? $this->Beschriftung($variableID, $this->Wert($variableID, $mitglied['Value'] ?? ''))
-                : 'Variable fehlt';
-        }
-
-        return $mitglieder;
-    }
-
-    private function Profil(int $variableID): ?array
-    {
-        if (!IPS_VariableExists($variableID)) {
-            return null;
-        }
-        $variable = IPS_GetVariable($variableID);
-        if ($variable['VariableType'] != 0) {
-            return null;
-        }
-        $name = $variable['VariableCustomProfile'];
-        if ($name === '') {
-            $name = $variable['VariableProfile'];
-        }
-        if (($name === '') || !IPS_VariableProfileExists($name)) {
-            return null;
-        }
-        $profil = IPS_GetVariableProfile($name);
-        return empty($profil['Associations']) ? null : $profil;
     }
 
     /**

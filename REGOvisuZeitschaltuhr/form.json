@@ -1,0 +1,189 @@
+{
+    "elements": [
+        {
+            "type": "Label",
+            "caption": "Eine Zeitschaltuhr mit beliebig vielen Schaltpunkten. Jeder Punkt hat eine feste Uhrzeit oder richtet sich nach Sonnenauf- bzw. -untergang, und schreibt auf eine Variable oder ruft eine Szene auf."
+        },
+        {
+            "type": "Select",
+            "name": "Mode",
+            "caption": "Art",
+            "options": [
+                {
+                    "caption": "Tagesuhr — jeden Tag gleich",
+                    "value": 0
+                },
+                {
+                    "caption": "Wochenuhr — je Punkt eigene Wochentage",
+                    "value": 1
+                }
+            ],
+            "onChange": [
+                "$zeilen = [];",
+                "foreach ($Points as $zeile) { $zeilen[] = $zeile; }",
+                "RGVZU_Nachbeschriften($id, json_encode($zeilen));"
+            ]
+        },
+        {
+            "type": "List",
+            "name": "Points",
+            "caption": "Schaltpunkte",
+            "rowCount": 10,
+            "add": true,
+            "delete": true,
+            "changeOrder": true,
+            "columns": [
+                {
+                    "caption": "Aktiv",
+                    "name": "Active",
+                    "width": "70px",
+                    "add": true,
+                    "edit": {
+                        "type": "CheckBox"
+                    }
+                },
+                {
+                    "caption": "Tage",
+                    "name": "Tage",
+                    "width": "150px",
+                    "add": ""
+                },
+                {
+                    "caption": "Zeit",
+                    "name": "Zeit",
+                    "width": "150px",
+                    "add": ""
+                },
+                {
+                    "caption": "Ziel",
+                    "name": "Ziel",
+                    "width": "auto",
+                    "add": ""
+                },
+                {
+                    "caption": "Mo",
+                    "name": "D1",
+                    "width": "10px",
+                    "visible": false,
+                    "add": true
+                },
+                {
+                    "caption": "Di",
+                    "name": "D2",
+                    "width": "10px",
+                    "visible": false,
+                    "add": true
+                },
+                {
+                    "caption": "Mi",
+                    "name": "D3",
+                    "width": "10px",
+                    "visible": false,
+                    "add": true
+                },
+                {
+                    "caption": "Do",
+                    "name": "D4",
+                    "width": "10px",
+                    "visible": false,
+                    "add": true
+                },
+                {
+                    "caption": "Fr",
+                    "name": "D5",
+                    "width": "10px",
+                    "visible": false,
+                    "add": true
+                },
+                {
+                    "caption": "Sa",
+                    "name": "D6",
+                    "width": "10px",
+                    "visible": false,
+                    "add": true
+                },
+                {
+                    "caption": "So",
+                    "name": "D7",
+                    "width": "10px",
+                    "visible": false,
+                    "add": true
+                },
+                {
+                    "caption": "Zeitart",
+                    "name": "TimeType",
+                    "width": "10px",
+                    "visible": false,
+                    "add": 0
+                },
+                {
+                    "caption": "Uhrzeit",
+                    "name": "Time",
+                    "width": "10px",
+                    "visible": false,
+                    "add": "{\"hour\":18,\"minute\":0,\"second\":0}"
+                },
+                {
+                    "caption": "Verschiebung",
+                    "name": "Offset",
+                    "width": "10px",
+                    "visible": false,
+                    "add": 0
+                },
+                {
+                    "caption": "Zielobjekt",
+                    "name": "TargetID",
+                    "width": "10px",
+                    "visible": false,
+                    "add": 0
+                },
+                {
+                    "caption": "Zielwert",
+                    "name": "Value",
+                    "width": "10px",
+                    "visible": false,
+                    "add": ""
+                }
+            ],
+            "form": [
+                "$zeile = ['TargetID' => 0, 'TimeType' => 0];",
+                "if (isset($Points['TargetID'])) { $zeile['TargetID'] = (int) $Points['TargetID']; }",
+                "if (isset($Points['TimeType'])) { $zeile['TimeType'] = (int) $Points['TimeType']; }",
+                "return json_decode(RGVZU_Zeilenformular($id, $zeile['TargetID'], $zeile['TimeType']), true);"
+            ],
+            "onAdd": [
+                "$zeilen = [];",
+                "foreach ($Points as $zeile) { $zeilen[] = $zeile; }",
+                "RGVZU_Nachbeschriften($id, json_encode($zeilen));"
+            ],
+            "onEdit": [
+                "$zeilen = [];",
+                "foreach ($Points as $zeile) { $zeilen[] = $zeile; }",
+                "RGVZU_Nachbeschriften($id, json_encode($zeilen));"
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Standort für Sonnenauf- und -untergang",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Ohne Angabe nimmt die Uhr die Standort-Instanz von Symcon."
+                },
+                {
+                    "type": "SelectInstance",
+                    "name": "LocationInstance",
+                    "caption": "Standort"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Neu planen",
+            "onClick": "RGVZU_Planen($id); echo RGVZU_NaechsteSchaltung($id);"
+        }
+    ],
+    "status": []
+}
