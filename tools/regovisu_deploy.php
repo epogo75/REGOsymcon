@@ -596,7 +596,7 @@ function sync_category($ident, $name, $position, $parentId, &$index, &$visited)
 /**
  * Eine einzelne Gruppenadresse als exakt typisiertes Gerät.
  */
-function sync_gruppenadresse($adresse, $name, $dptId, $parentId, $position, $gatewayId, &$index, &$visited)
+function sync_gruppenadresse($adresse, $name, $dptId, $parentId, $position, $gatewayId, &$index, &$visited, $rueckmeldungen = [])
 {
     $typ = dpt_zerlegen($dptId);
     if ($typ === null) {
@@ -638,6 +638,21 @@ function sync_gruppenadresse($adresse, $name, $dptId, $parentId, $position, $gat
     IPS_SetPosition($id, $position);
     if (IPS_GetInstance($id)['ConnectionID'] !== $gatewayId) {
         IPS_ConnectInstance($id, $gatewayId);
+    }
+
+    // Rückmeldung: die Statusadresse gehört unter "Mehr?" in die Liste der
+    // Feedback Addresses des Befehlsgeräts. Ohne sie kennt das Gerät nur, was
+    // es selbst gesendet hat -- ein Aktor, der von Hand oder über eine andere
+    // Adresse geschaltet wurde, bliebe unbemerkt.
+    $mapping = [];
+    foreach ($rueckmeldungen as $fb) {
+        list($fh, $fm, $fs) = array_map('intval', explode('/', $fb));
+        $mapping[] = ['Address1' => $fh, 'Address2' => $fm, 'Address3' => $fs];
+    }
+    $mappingJson = json_encode($mapping);
+    if (json_decode(IPS_GetProperty($id, 'Mapping'), true) !== $mapping) {
+        IPS_SetProperty($id, 'Mapping', $mappingJson);
+        IPS_ApplyChanges($id);
     }
 
     return $neu ? 'neu' : 'vorhanden';
@@ -1335,6 +1350,7 @@ $ohneDpt = [];
 // ETS-Datei, weil die Funktion mit ihr arbeitet (etwa 18.001 statt 17.001 bei
 // Szenen). Rückmeldungen erben den DPT ihrer Primäradresse.
 $eigeneDpt = [];
+$rueckmeldungen = [];
 foreach ($tree['etagen'] as $etage) {
     foreach ($etage['raeume'] as $raum) {
         foreach ($raum['funktionen'] as $funktion) {
@@ -1342,6 +1358,7 @@ foreach ($tree['etagen'] as $etage) {
                 $eigeneDpt[$adresse['group_address']] = $adresse['dpt_id'];
                 foreach ($adresse['feedback_addresses'] as $fb) {
                     $eigeneDpt[$fb['group_address']] = $adresse['dpt_id'];
+                    $rueckmeldungen[$adresse['group_address']][] = $fb['group_address'];
                 }
             }
         }
@@ -1408,7 +1425,8 @@ if (is_array($katalog) && !empty($katalog)) {
                 }
                 $position = (int) explode('/', $adresse)[2];
 
-                switch (sync_gruppenadresse($adresse, $eintrag['name'], $dpt, $mgId, $position, $gatewayId, $index, $visited)) {
+                switch (sync_gruppenadresse($adresse, $eintrag['name'], $dpt, $mgId, $position, $gatewayId,
+                                            $index, $visited, $rueckmeldungen[$adresse] ?? [])) {
                     case 'neu':
                         $gaNeu++;
                         break;
@@ -1441,7 +1459,8 @@ if (is_array($katalog) && !empty($katalog)) {
             foreach ($mittelgruppe['adressen'] as $adresse) {
                 $position = (int) explode('/', $adresse['group_address'])[2];
                 switch (sync_gruppenadresse($adresse['group_address'], $adresse['name'], $adresse['dpt_id'],
-                                            $mgId, $position, $gatewayId, $index, $visited)) {
+                                            $mgId, $position, $gatewayId, $index, $visited,
+                                            $rueckmeldungen[$adresse['group_address']] ?? [])) {
                     case 'neu':
                         $gaNeu++;
                         break;
@@ -1717,6 +1736,14 @@ echo sprintf("  Kacheln:  %d neu, %d aktualisiert, %d unverändert, %d Verknüpf
     $kachelnNeu, $kachelnAktualisiert, $kachelnUnveraendert, $links);
 echo sprintf("  KNX:      %d Adressen neu, %d vorhanden, %d ohne passendes Symcon-Modul; davon %d freie\n",
     $gaNeu, $gaVorhanden, $gaUebersprungen, $freie);
+$mitRueckmeldung = 0;
+foreach ($rueckmeldungen as $befehl => $fbs) {
+    list($h, $m, $sub) = array_map('intval', explode('/', $befehl));
+    if (isset($index[sprintf('%s%d_%d_%d', GA_PREFIX, $h, $m, $sub)])) {
+        $mitRueckmeldung += count($fbs);
+    }
+}
+echo sprintf("  Rückmeldung: %d Statusadressen unter \"Mehr?\" eingetragen\n", $mitRueckmeldung);
 $masseText = [];
 foreach ($KACHEL_MASSE as $geraet => $m) {
     $masseText[] = sprintf('%s %dx%d/%dx%d', $geraet,
