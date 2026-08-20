@@ -116,32 +116,41 @@ class REGOvisuZeitschaltuhr extends IPSModule
      * Der Zielwert bekommt "SelectValue" -- Symcons Bedienelement, das sich
      * nach dem Profil der Zielvariable richtet. Eine Szene braucht keinen
      * Wert, dann bleibt das Feld verborgen.
+     *
+     * Die Wochentage stehen nur bei einer Wochenuhr da. Eine Tagesuhr schaltet
+     * jeden Tag; ein Haekchen, das nichts bewirkt, verwirrt nur. $Mode kommt
+     * aus dem geoeffneten Formular, nicht aus der Eigenschaft -- so stimmt es
+     * auch, wenn die Art gerade umgestellt und noch nicht uebernommen wurde.
      */
-    public function Zeilenformular(int $TargetID, int $TimeType): string
+    public function Zeilenformular(int $TargetID, int $TimeType, int $Mode = 1): string
     {
         $variable = $this->Zielvariable($TargetID);
         $astro = ($TimeType != 0);
 
-        $wochentage = [];
-        foreach (self::TAGE as $nummer => $kuerzel) {
-            $wochentage[] = [
-                'type'    => 'CheckBox',
-                'name'    => 'D' . $nummer,
-                'caption' => $kuerzel,
-            ];
-        }
-
-        return json_encode([
+        $elemente = [
             [
                 'type'    => 'CheckBox',
                 'name'    => 'Active',
                 'caption' => 'Aktiv',
             ],
-            [
-                'type'    => 'RowLayout',
-                'visible' => ($this->ReadPropertyInteger('Mode') == 1),
-                'items'   => $wochentage,
-            ],
+        ];
+
+        if ($Mode == 1) {
+            $wochentage = [];
+            foreach (self::TAGE as $nummer => $kuerzel) {
+                $wochentage[] = [
+                    'type'    => 'CheckBox',
+                    'name'    => 'D' . $nummer,
+                    'caption' => $kuerzel,
+                ];
+            }
+            $elemente[] = [
+                'type'  => 'RowLayout',
+                'items' => $wochentage,
+            ];
+        }
+
+        return json_encode(array_merge($elemente, [
             [
                 'type'    => 'Select',
                 'name'    => 'TimeType',
@@ -181,7 +190,7 @@ class REGOvisuZeitschaltuhr extends IPSModule
                 'variableID' => $variable,
                 'visible'    => ($variable > 0),
             ],
-        ]);
+        ]));
     }
 
     /**
@@ -208,19 +217,6 @@ class REGOvisuZeitschaltuhr extends IPSModule
             $this->UpdateFormField('Value', 'value', GetValue($variable));
         }
     }
-
-    /**
-     * Nach dem Bearbeiten einer Zeile: die Anzeigespalten neu schreiben.
-     */
-    public function Nachbeschriften(string $Liste): void
-    {
-        $zeilen = json_decode($Liste, true);
-        $this->UpdateFormField('Points', 'values', json_encode($this->Beschriftet(is_array($zeilen) ? $zeilen : [])));
-    }
-
-    // ------------------------------------------------------------------
-    // Ablauf
-    // ------------------------------------------------------------------
 
     /**
      * Der Wecker: schaltet, was seit dem letzten Lauf faellig geworden ist,

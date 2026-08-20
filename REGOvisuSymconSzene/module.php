@@ -134,16 +134,6 @@ class REGOvisuSymconSzene extends IPSModule
     }
 
     /**
-     * Nach dem Bearbeiten einer Zeile: die Spalte "Zielwert" neu beschriften.
-     * Gespeichert wird der Wert selbst, angezeigt seine Beschriftung.
-     */
-    public function Nachbeschriften(string $Liste): void
-    {
-        $zeilen = json_decode($Liste, true);
-        $this->UpdateFormField('Members', 'values', json_encode($this->Beschriftet(is_array($zeilen) ? $zeilen : [])));
-    }
-
-    /**
      * Schreibt die Zielwerte. Auch für Ereignisse und Skripte gedacht.
      */
     public function Aufrufen(): int

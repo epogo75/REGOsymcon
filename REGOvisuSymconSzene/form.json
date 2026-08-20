@@ -61,7 +61,7 @@
                     "name": "Value",
                     "width": "10px",
                     "visible": false,
-                    "add": "",
+                    "add": "null",
                     "edit": {
                         "type": "SelectValue"
                     }
@@ -80,18 +80,7 @@
                 }
             ],
             "form": [
-                "$zeile = isset($Members['VariableID']) ? (int) $Members['VariableID'] : 0;",
-                "return json_decode(RGVSS_Zeilenformular($id, $zeile), true);"
-            ],
-            "onAdd": [
-                "$zeilen = [];",
-                "foreach ($Members as $zeile) { $zeilen[] = $zeile; }",
-                "RGVSS_Nachbeschriften($id, json_encode($zeilen));"
-            ],
-            "onEdit": [
-                "$zeilen = [];",
-                "foreach ($Members as $zeile) { $zeilen[] = $zeile; }",
-                "RGVSS_Nachbeschriften($id, json_encode($zeilen));"
+                "return json_decode(RGVSS_Zeilenformular($id, (int) ($Members['VariableID'] ?? 0)), true);"
             ]
         },
         {

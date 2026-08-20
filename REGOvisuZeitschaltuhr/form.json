@@ -17,11 +17,6 @@
                     "caption": "Wochenuhr — je Punkt eigene Wochentage",
                     "value": 1
                 }
-            ],
-            "onChange": [
-                "$zeilen = [];",
-                "foreach ($Points as $zeile) { $zeilen[] = $zeile; }",
-                "RGVZU_Nachbeschriften($id, json_encode($zeilen));"
             ]
         },
         {
@@ -142,24 +137,11 @@
                     "name": "Value",
                     "width": "10px",
                     "visible": false,
-                    "add": ""
+                    "add": "null"
                 }
             ],
             "form": [
-                "$zeile = ['TargetID' => 0, 'TimeType' => 0];",
-                "if (isset($Points['TargetID'])) { $zeile['TargetID'] = (int) $Points['TargetID']; }",
-                "if (isset($Points['TimeType'])) { $zeile['TimeType'] = (int) $Points['TimeType']; }",
-                "return json_decode(RGVZU_Zeilenformular($id, $zeile['TargetID'], $zeile['TimeType']), true);"
-            ],
-            "onAdd": [
-                "$zeilen = [];",
-                "foreach ($Points as $zeile) { $zeilen[] = $zeile; }",
-                "RGVZU_Nachbeschriften($id, json_encode($zeilen));"
-            ],
-            "onEdit": [
-                "$zeilen = [];",
-                "foreach ($Points as $zeile) { $zeilen[] = $zeile; }",
-                "RGVZU_Nachbeschriften($id, json_encode($zeilen));"
+                "return json_decode(RGVZU_Zeilenformular($id, (int) ($Points['TargetID'] ?? 0), (int) ($Points['TimeType'] ?? 0), (int) $Mode), true);"
             ]
         },
         {
