@@ -709,6 +709,17 @@ function regoAendern(index, feld, wert) {
 function regoWahlZu() {
     document.getElementById('rego-waehler').hidden = true;
 }
+// Zur gewaehlten Zeile scrollen. Muss laufen, waehrend das Blatt sichtbar ist:
+// ein verborgenes Element hat keine Masse, offsetTop und clientHeight sind dann
+// null und das Scrollen verpufft.
+function regoZuGewaehltem(behaelter) {
+    var hier = behaelter.querySelector('.waehler-hier');
+    if (!hier) {
+        behaelter.scrollTop = 0;
+        return;
+    }
+    behaelter.scrollTop = hier.offsetTop - (behaelter.clientHeight / 2) + (hier.offsetHeight / 2);
+}
 // Auswahl ueber Knoepfe statt ueber ein select: das Auswahlfeld des Browsers
 // laesst sich im Rahmen der Kachel nicht aufklappen, Knoepfe funktionieren.
 function regoWahlAuf(titel, optionen, wert, beim) {
@@ -730,7 +741,7 @@ function regoWahlAuf(titel, optionen, wert, beim) {
     });
 
     blatt.hidden = false;
-    liste.scrollTop = 0;
+    regoZuGewaehltem(liste);
 }
 // Uhrzeit: Stunde und Minute in zwei Spalten, jede Minute einzeln. Ein
 // Viertelstundenraster waere kuerzer, aber eine Zeitschaltuhr, die 06:35 nicht
@@ -780,20 +791,16 @@ function regoZeitAuf(zeit, beim) {
         liste.appendChild(spalten);
 
         if (springen) {
-            // Die gewaehlte Zahl in die Mitte ihrer Spalte ruecken. offsetTop
-            // zaehlt schon ab der Spalte, die ist selbst positioniert.
-            Array.prototype.forEach.call(liste.querySelectorAll('.waehler-hier'), function (k) {
-                var spalte = k.parentNode;
-                spalte.scrollTop = k.offsetTop - (spalte.clientHeight / 2) + (k.offsetHeight / 2);
-            });
+            Array.prototype.forEach.call(liste.querySelectorAll('.waehler-spalte'), regoZuGewaehltem);
         }
     };
 
-    // Nur beim Oeffnen springen: nach einem Klick steht die Zahl ohnehin unter
-    // dem Finger, ein Sprung waere dort nur ein Zucken.
+    // Erst sichtbar machen, dann zeichnen -- sonst hat die Spalte beim Springen
+    // noch keine Hoehe. Nach einem Klick wird nicht mehr gesprungen: die Zahl
+    // steht ohnehin unter dem Finger.
+    blatt.hidden = false;
     zeichnen();
     springen = false;
-    blatt.hidden = false;
 }
 function regoWaehler(klasse, titel, optionen, wert, beim) {
     var knopf = document.createElement('button');

@@ -625,7 +625,12 @@ button.punkt-zeit{background:var(--surface-2); border-color:var(--border)}
     border-radius:var(--radius-sm); color:var(--text);
 }
 .waehler-zu:hover{border-color:var(--accent); color:var(--accent)}
-.waehler-liste{display:flex; flex-direction:column; gap:.25rem; overflow:auto; min-height:0}
+/* position:relative, damit offsetTop der Eintraege ab der Liste zaehlt -- sonst
+   rechnet der Sprung zur gewaehlten Zeile an der Kopfzeile vorbei. */
+.waehler-liste{
+    display:flex; flex-direction:column; gap:.25rem;
+    overflow:auto; min-height:0; position:relative;
+}
 .waehler-eintrag{
     text-align:left; font-size:1rem; line-height:1.3; padding:.55rem .6rem;
     min-height:2.4rem; cursor:pointer;
