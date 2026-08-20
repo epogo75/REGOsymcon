@@ -42,7 +42,8 @@ Browser öffnen, die Regler und Knöpfe reagieren.
 Auf einem leeren Symcon genügt **ein** Skript: `tools/regovisu_deploy.php`.
 Es installiert die Modulbibliothek selbst und baut danach alles auf:
 
-1. Modulbibliothek über die Modulverwaltung (falls noch nicht da)
+1. Modulbibliothek über die Modulverwaltung — fehlt sie, wird sie installiert;
+   ist sie da und liegt auf GitHub etwas Neueres, wird sie nachgezogen
 2. „Visu &lt;Projekt&gt;" mit Etagen und Räumen
 3. den kompletten Adresskatalog des importierten ETS-Projekts unter
    „REGOdeploy > KNX": Haupt- und Mittelgruppen mit ihren ETS-Namen, jede

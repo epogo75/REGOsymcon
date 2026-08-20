@@ -88,6 +88,8 @@ $SONDER_MASSE = [
 ];
 
 const REGOVISU_REPOSITORY = 'https://github.com/epogo75/SymconREGOvisu';
+// So heißt die Bibliothek in Symcons Modulverwaltung (der Ordnername).
+const REGOVISU_BIBLIOTHEK = 'REGOvisu';
 
 // Modul-GUIDs der REGOvisu-Bibliothek
 const RGV_SCHALTEN = '{E5F57876-C2BE-4C9B-9D1E-237D9010ADA8}';
@@ -480,13 +482,20 @@ function http_get_json($url, $token)
  */
 function ensure_module_installed()
 {
-    if (@IPS_GetModule(RGV_SCHALTEN) !== false) {
-        return 'war schon installiert';
-    }
-
     $control = IPS_GetInstanceListByModuleID(MODULE_CONTROL_GUID);
     if (empty($control)) {
         throw new Exception('Keine Modulverwaltung gefunden -- Modul bitte von Hand installieren');
+    }
+
+    if (@IPS_GetModule(RGV_SCHALTEN) !== false) {
+        // Schon da -- aber liegt auf GitHub etwas Neueres, wird es geholt.
+        if (in_array(REGOVISU_BIBLIOTHEK, MC_GetModuleList($control[0]), true)
+            && MC_IsModuleUpdateAvailable($control[0], REGOVISU_BIBLIOTHEK)) {
+            MC_UpdateModule($control[0], REGOVISU_BIBLIOTHEK);
+            $stand = MC_GetModuleRepositoryInfo($control[0], REGOVISU_BIBLIOTHEK);
+            return 'aktualisiert auf ' . ($stand['ModuleCommit'] ?? 'neuen Stand');
+        }
+        return 'war schon installiert und aktuell';
     }
 
     MC_CreateModule($control[0], REGOVISU_REPOSITORY);
