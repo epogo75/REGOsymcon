@@ -1,4 +1,4 @@
-# REGOvisu
+# REGOsymcon
 
 Symcon-Kacheln im Design von **REGObaseX1** — dieselben Bedienelemente,
 dieselbe Palette, nur auf Symcon-Variablen statt auf einem Gira X1.
@@ -12,7 +12,7 @@ Kachel-Visualisierung schreibt den Instanznamen selbst darüber.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/kacheln-dunkel.svg">
-  <img alt="Die zehn REGOvisu-Kacheln: Schalten, Dimmen, Jalousie, Klima, Szene, Sensor, Wetterstation, Info, Taster, URL-Aufruf" src="docs/kacheln-hell.svg" width="456">
+  <img alt="Die zehn REGOsymcon-Kacheln: Schalten, Dimmen, Jalousie, Klima, Szene, Sensor, Wetterstation, Info, Taster, URL-Aufruf" src="docs/kacheln-hell.svg" width="456">
 </picture>
 
 Maßstabsgetreu gezeichnet, hell und dunkel — welche Palette eine Kachel nimmt,
@@ -25,23 +25,23 @@ Browser öffnen, die Regler und Knöpfe reagieren.
 
 | Modul | In der Kachel |
 |---|---|
-| REGOvisu Schalten | AN/AUS-Knopf, AN in Rot |
-| REGOvisu Dimmen | AN/AUS-Knopf, Prozentregler, Prozentwert |
-| REGOvisu Jalousie | Position in %, Auf / Stopp / Ab |
-| REGOvisu Klima | „Ist 21,5 °C", Stepper − / Soll / + |
-| REGOvisu Szene | Ein Knopf je Szene — KNX-Szenennummer oder Symcon-Szene |
-| REGOvisu Symcon-Szene | Eine Szene, die ihre Mitglieder selbst kennt: aufrufen und speichern |
-| REGOvisu Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
-| REGOvisu Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
-| REGOvisu Info | Datum, Sonnenauf- und -untergang, Außentemperatur — steht auf der Startseite |
-| REGOvisu Taster | Ein Knopf, der auslöst — ohne Zustandsanzeige, weil ein Taster keinen hat |
-| REGOvisu URL-Aufruf | Die Seite selbst, eingebettet über die ganze Kachel |
-| REGOvisu Zähler | Leistung, Zählerstand und Heute, dahinter die weiteren Messwerte |
-| REGOvisu Zeitschaltuhr | Nächste Schaltung mit Ziel, AN/AUS und „Überspringen" |
+| REGOsymcon Schalten | AN/AUS-Knopf, AN in Rot |
+| REGOsymcon Dimmen | AN/AUS-Knopf, Prozentregler, Prozentwert |
+| REGOsymcon Jalousie | Position in %, Auf / Stopp / Ab |
+| REGOsymcon Klima | „Ist 21,5 °C", Stepper − / Soll / + |
+| REGOsymcon Szene | Ein Knopf je Szene — KNX-Szenennummer oder Symcon-Szene |
+| REGOsymcon Symcon-Szene | Eine Szene, die ihre Mitglieder selbst kennt: aufrufen und speichern |
+| REGOsymcon Sensor | Große Zahl mit Einheit, darunter Pillen für zweiten Zustand und Batterie — reine Anzeige |
+| REGOsymcon Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
+| REGOsymcon Info | Datum, Sonnenauf- und -untergang, Außentemperatur — steht auf der Startseite |
+| REGOsymcon Taster | Ein Knopf, der auslöst — ohne Zustandsanzeige, weil ein Taster keinen hat |
+| REGOsymcon URL-Aufruf | Die Seite selbst, eingebettet über die ganze Kachel |
+| REGOsymcon Zähler | Leistung, Zählerstand und Heute, dahinter die weiteren Messwerte |
+| REGOsymcon Zeitschaltuhr | Nächste Schaltung mit Ziel, AN/AUS und „Überspringen" |
 
 ## Installation
 
-Auf einem leeren Symcon genügt **ein** Skript: `tools/regovisu_deploy.php`.
+Auf einem leeren Symcon genügt **ein** Skript: `tools/regosymcon_deploy.php`.
 Es installiert die Modulbibliothek selbst und baut danach alles auf:
 
 1. Modulbibliothek über die Modulverwaltung — fehlt sie, wird sie installiert;
@@ -95,8 +95,8 @@ auch aus Ereignissen und Skripten aufrufbar:
 
 | Funktion | Wirkung |
 |---|---|
-| `RGVSS_Aufrufen($id)` | schreibt die Zielwerte; gibt zurück, wie viele Mitglieder geschrieben wurden |
-| `RGVSS_Speichern($id)` | übernimmt den aktuellen Zustand als neue Zielwerte |
+| `RGSSZ_Aufrufen($id)` | schreibt die Zielwerte; gibt zurück, wie viele Mitglieder geschrieben wurden |
+| `RGSSZ_Speichern($id)` | übernimmt den aktuellen Zustand als neue Zielwerte |
 
 Geschrieben wird über die Aktion der Zielvariable, also mit echtem Telegramm;
 nur wenn keine hinterlegt ist, wird der Wert direkt gesetzt. „Nur schreiben,
@@ -114,14 +114,14 @@ Den Zielwert stellt man mit Symcons eigenem Bedienelement ein: die Zeile
 öffnen, und der Zielwert richtet sich nach dem Profil der Variable — ein
 Schalter mit Aus/An, ein Schieber mit Prozent, eine Auswahl mit den
 Beschriftungen des Profils. In der Liste steht er so, wie Symcon ihn überall
-zeigt: „An", „75 %", „21,5 °C" statt 1, 75, 21.5. Eigene Profile legt REGOvisu
+zeigt: „An", „75 %", „21,5 °C" statt 1, 75, 21.5. Eigene Profile legt REGOsymcon
 dafür nicht an; damit die Beschriftungen deutsch ankommen, muss Symcons Sprache
 gesetzt sein — das Deploy-Skript setzt sie auf einem frischen Symcon auf
 `de_DE`. Ältere Zeilen, in denen noch „Aus" oder „1" als Text steht, bleiben
 lesbar.
 
 **Mitglieder aus einem Raum übernehmen:** im Formular einen Raum wählen und
-den Knopf drücken — die bedienbaren Variablen aller REGOvisu-Kacheln dieses
+den Knopf drücken — die bedienbaren Variablen aller REGOsymcon-Kacheln dieses
 Raums landen als Zeilen in der Liste, mit dem aktuellen Zustand als Zielwert.
 Übernommen wird nur, was eine Szene sinnvoll setzen kann: Schalten,
 Helligkeit, Rollladenposition und Soll-Temperatur. Tastbefehle wie Auf/Ab/
@@ -141,7 +141,7 @@ Ein Schaltpunkt hat eine Zeit und ein Ziel:
 | | |
 |---|---|
 | Zeit | feste Uhrzeit, **Sonnenaufgang** oder **Sonnenuntergang**, jeweils mit Verschiebung in Minuten |
-| Ziel | eine Variable, eine REGOvisu-Kachel oder eine Symcon-Szene |
+| Ziel | eine Variable, eine REGOsymcon-Kachel oder eine Symcon-Szene |
 | Zielwert | Symcons eigenes Bedienelement, passend zum Profil — Aus/An, Prozent, Grad |
 
 Zeigt das Ziel auf eine Kachel, ist die Variable gemeint, die sie bedient: bei
@@ -151,10 +151,10 @@ aufgerufen.
 
 | Funktion | |
 |---|---|
-| `RGVZU_NaechsteSchaltung($id)` | „heute 20:18", „morgen 06:30", „Uhr ist aus" |
-| `RGVZU_Ausloesen($id, $index)` | schaltet einen Punkt sofort, unabhängig von seiner Zeit |
-| `RGVZU_Ueberspringen($id)` | lässt den nächsten Termin einmalig aus; noch einmal aufgerufen, setzt er ihn wieder ein |
-| `RGVZU_Planen($id)` | stellt den Wecker neu |
+| `RGSZU_NaechsteSchaltung($id)` | „heute 20:18", „morgen 06:30", „Uhr ist aus" |
+| `RGSZU_Ausloesen($id, $index)` | schaltet einen Punkt sofort, unabhängig von seiner Zeit |
+| `RGSZU_Ueberspringen($id)` | lässt den nächsten Termin einmalig aus; noch einmal aufgerufen, setzt er ihn wieder ein |
+| `RGSZU_Planen($id)` | stellt den Wecker neu |
 
 Die Kachel zeigt die nächste Schaltung mit ihrem Ziel und hat zwei Knöpfe: die
 Uhr an- und ausschalten, und den nächsten Termin auslassen. Der Zustand der Uhr

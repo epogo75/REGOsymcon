@@ -1,0 +1,13 @@
+{
+    "id": "{C2314D3B-F6AD-40E2-B5B7-6DB850E0AD5E}",
+    "name": "REGOsymconKnxSzene",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon KNX-Szene"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSKS"
+}

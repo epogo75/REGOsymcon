@@ -1,0 +1,13 @@
+{
+    "id": "{182B054E-7A6F-4A5D-9B32-F1EF596B1B26}",
+    "name": "REGOsymconZeitschaltuhr",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Zeitschaltuhr"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSZU"
+}

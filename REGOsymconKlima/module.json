@@ -1,0 +1,13 @@
+{
+    "id": "{FEB37553-F02A-4F1B-A669-15BCD71E0712}",
+    "name": "REGOsymconKlima",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Klima"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSKL"
+}

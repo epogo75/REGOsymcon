@@ -1,0 +1,13 @@
+{
+    "id": "{A4507CF7-C921-467C-BD01-699C862B9F5C}",
+    "name": "REGOsymconDimmen",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Dimmen"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSDI"
+}

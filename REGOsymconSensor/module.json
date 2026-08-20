@@ -1,0 +1,13 @@
+{
+    "id": "{0871A6F2-8912-4EC0-9C4F-616982DAFF34}",
+    "name": "REGOsymconSensor",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Sensor"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSSE"
+}

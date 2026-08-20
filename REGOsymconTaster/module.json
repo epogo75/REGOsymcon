@@ -1,0 +1,13 @@
+{
+    "id": "{2562CE14-21C3-4609-B04E-A9A69C51C684}",
+    "name": "REGOsymconTaster",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Taster"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSTA"
+}

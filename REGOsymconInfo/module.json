@@ -1,0 +1,13 @@
+{
+    "id": "{63561319-730C-4139-8F95-1DA3BD142C83}",
+    "name": "REGOsymconInfo",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Info"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSIN"
+}

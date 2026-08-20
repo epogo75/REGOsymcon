@@ -1,0 +1,13 @@
+{
+    "id": "{E72DF487-94FC-4942-8473-1FBEAF87564B}",
+    "name": "REGOsymconUrl",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon URL-Aufruf"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSUR"
+}

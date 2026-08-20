@@ -1,0 +1,13 @@
+{
+    "id": "{6EFCE386-425F-4AF5-8440-B93CAA0B3C2E}",
+    "name": "REGOsymconWetterstation",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Wetterstation"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSWE"
+}

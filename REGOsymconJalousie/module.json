@@ -1,0 +1,13 @@
+{
+    "id": "{23F455EC-9236-480B-B02F-E10CE43DBDE2}",
+    "name": "REGOsymconJalousie",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "REGOsymcon Jalousie"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "RGSJA"
+}
