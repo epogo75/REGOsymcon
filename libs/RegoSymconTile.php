@@ -600,23 +600,30 @@ button.punkt-zeit{background:var(--surface-2); border-color:var(--border)}
 
 /* Auswahlblatt: liegt ueber der Kachel, weil das Auswahlfeld des Browsers
    sich im Rahmen der Kachel nicht aufklappen laesst. */
+/* Das Blatt bleibt innerhalb der Polsterung der Kachel: oben schreibt die
+   Visualisierung ihren eigenen Namen ueber die Flaeche, rechts liegt ihr
+   Symbol zum Vergroessern. Beides wuerde alles verdecken, was dort steht. */
 .waehler{
-    position:absolute; inset:0; z-index:5; display:flex; flex-direction:column;
-    background:var(--surface-1); border-radius:var(--radius-lg); padding:.4rem;
+    position:absolute; z-index:5; display:flex; flex-direction:column;
+    top:var(--pad-top,8px); right:var(--pad-side,8px);
+    bottom:var(--pad-bottom,8px); left:var(--pad-side,8px);
+    background:var(--surface-1); border-radius:var(--radius-lg); padding:.3rem;
 }
 .waehler[hidden]{display:none}
-/* Schliessen steht links: oben rechts legt die Visualisierung ihr eigenes
-   Symbol zum Vergroessern ueber die Kachel, das verdeckt alles darunter. */
 .waehler-kopf{
     display:flex; align-items:center; gap:.5rem;
-    font-size:.9rem; font-weight:600; color:var(--text-faint);
-    padding:0 2.6rem .4rem .1rem;
+    font-size:.85rem; font-weight:600; color:var(--text-faint);
+    padding:0 2.8rem .3rem .2rem;
 }
+/* Schliessen sitzt unten: oben deckt der Name der Kachel alles zu, rechts
+   das Symbol zum Vergroessern. Unten stoert nichts. */
 .waehler-zu{
-    width:2rem; height:2rem; padding:0; line-height:1.2; font-size:1.1rem; cursor:pointer;
-    background:transparent; border:1px solid var(--border);
+    flex:0 0 auto; width:100%; margin-top:.3rem; min-height:2.2rem;
+    padding:0 .5rem; font-size:.9rem; font-weight:600; cursor:pointer;
+    background:var(--surface-3); border:1px solid var(--border);
     border-radius:var(--radius-sm); color:var(--text);
 }
+.waehler-zu:hover{border-color:var(--accent); color:var(--accent)}
 .waehler-liste{display:flex; flex-direction:column; gap:.25rem; overflow:auto; min-height:0}
 .waehler-eintrag{
     text-align:left; font-size:1rem; line-height:1.3; padding:.55rem .6rem;

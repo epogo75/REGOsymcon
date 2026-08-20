@@ -672,10 +672,9 @@ class REGOsymconZeitschaltuhr extends IPSModule
             . ($bedienbar
                 ? '<div class="punkte" id="rego-punkte"></div>'
                   . '<div class="waehler" id="rego-waehler" hidden>'
-                  . '<div class="waehler-kopf">'
-                  . '<button type="button" class="waehler-zu" onclick="regoWahlZu()">×</button>'
-                  . '<span id="rego-waehler-titel"></span></div>'
+                  . '<div class="waehler-kopf"><span id="rego-waehler-titel"></span></div>'
                   . '<div class="waehler-liste" id="rego-waehler-liste"></div>'
+                  . '<button type="button" class="waehler-zu" onclick="regoWahlZu()">Fertig</button>'
                   . '</div>'
                   . '<div class="punkt-fuss">'
                   . '<button type="button" class="punkt-neu" onclick="requestAction(\'Neu\', true)">+ Schaltpunkt</button>'
