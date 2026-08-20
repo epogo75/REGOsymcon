@@ -157,7 +157,14 @@ aufgerufen.
 | `RGSZU_Planen($id)` | stellt den Wecker neu |
 
 Die Kachel zeigt die nächste Schaltung mit ihrem Ziel und hat zwei Knöpfe: die
-Uhr an- und ausschalten, und den nächsten Termin auslassen. Der Zustand der Uhr
+Uhr an- und ausschalten, und den nächsten Termin auslassen.
+
+Mit dem Häkchen **„Schaltpunkte in der Kachel bedienbar machen"** kommt die
+Liste der Schaltpunkte dazu: je Punkt ein Schalter, die Uhrzeit zum Ändern und
+die Wochentage zum Antippen — alles direkt in der Visualisierung, ohne Konsole.
+Das Ziel bleibt im Formular, dafür braucht es den Objektbaum. Ohne Häkchen
+bleibt die Kachel so knapp wie zuvor; zwei Instanzen nebeneinander gehen also
+auch: eine zum Nachsehen, eine zum Stellen. Der Zustand der Uhr
 ist eine echte Variable — eine Szene kann sie also mitschalten, und der Verlauf
 lässt sich aufzeichnen.
 

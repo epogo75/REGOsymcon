@@ -198,6 +198,15 @@
             ]
         },
         {
+            "type": "CheckBox",
+            "name": "EditInTile",
+            "caption": "Schaltpunkte in der Kachel bedienbar machen"
+        },
+        {
+            "type": "Label",
+            "caption": "Dann stehen Uhrzeit, Wochentage und der Schalter jedes Punktes in der Visualisierung. Das Ziel bleibt hier — dafür braucht es den Objektbaum."
+        },
+        {
             "type": "ExpansionPanel",
             "caption": "Standort für Sonnenauf- und -untergang",
             "items": [

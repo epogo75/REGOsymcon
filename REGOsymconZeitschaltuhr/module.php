@@ -44,6 +44,7 @@ class REGOsymconZeitschaltuhr extends IPSModule
         $this->RegisterPropertyInteger('Mode', 1);
         $this->RegisterPropertyString('Points', '[]');
         $this->RegisterPropertyInteger('LocationInstance', 0);
+        $this->RegisterPropertyBoolean('EditInTile', false);
 
         $this->RegisterAttributeInteger('LastRun', 0);
         $this->RegisterAttributeString('Skips', '{}');
@@ -85,7 +86,67 @@ class REGOsymconZeitschaltuhr extends IPSModule
             case 'Skip':
                 $this->Ueberspringen();
                 break;
+
+            case 'Punkt':
+                $this->PunktAendern((string) $Value);
+                break;
         }
+    }
+
+    /**
+     * Eine Aenderung aus der Kachel: Uhrzeit, ein Wochentag oder der Schalter
+     * eines Punktes. Das Ziel bleibt aussen vor -- dafuer braucht es den
+     * Objektbaum der Konsole.
+     */
+    private function PunktAendern(string $auftrag): void
+    {
+        if (!$this->ReadPropertyBoolean('EditInTile')) {
+            return;
+        }
+
+        $daten = json_decode($auftrag, true);
+        if (!is_array($daten)) {
+            return;
+        }
+
+        $punkte = $this->Punkte();
+        $index = (int) ($daten['index'] ?? -1);
+        if (!isset($punkte[$index])) {
+            return;
+        }
+
+        switch ($daten['feld'] ?? '') {
+            case 'aktiv':
+                $punkte[$index]['Active'] = (bool) ($daten['wert'] ?? false);
+                break;
+
+            case 'zeit':
+                // Das Zeitfeld des Browsers liefert "HH:MM", manchmal mit
+                // Sekunden. Alles andere wird abgewiesen.
+                if (!preg_match('/^(\d{1,2}):(\d{2})(:(\d{2}))?$/', (string) ($daten['wert'] ?? ''), $treffer)) {
+                    return;
+                }
+                $punkte[$index]['Time'] = json_encode([
+                    'hour'   => min(23, (int) $treffer[1]),
+                    'minute' => min(59, (int) $treffer[2]),
+                    'second' => min(59, (int) ($treffer[4] ?? 0)),
+                ]);
+                break;
+
+            case 'tag':
+                $tag = (int) ($daten['wert'] ?? 0);
+                if (($tag < 1) || ($tag > 7)) {
+                    return;
+                }
+                $punkte[$index]['D' . $tag] = !($punkte[$index]['D' . $tag] ?? false);
+                break;
+
+            default:
+                return;
+        }
+
+        IPS_SetProperty($this->InstanceID, 'Points', json_encode($punkte));
+        IPS_ApplyChanges($this->InstanceID);
     }
 
     // ------------------------------------------------------------------
@@ -266,6 +327,9 @@ class REGOsymconZeitschaltuhr extends IPSModule
 
         $this->RegoPush('Aktiv', $this->GetValue('Aktiv'));
         $this->RegoPush('Felder', $this->Kachelfelder($naechster));
+        if ($this->ReadPropertyBoolean('EditInTile')) {
+            $this->RegoPush('Punkte', $this->Kachelpunkte());
+        }
         $this->RegoPush('Skip', ($naechster !== null) && $this->IstUebersprungen($naechster['index'], $naechster['zeit']));
     }
 
@@ -552,7 +616,10 @@ class REGOsymconZeitschaltuhr extends IPSModule
     {
         $naechster = $this->NaechsterTermin(time(), true);
 
+        $bedienbar = $this->ReadPropertyBoolean('EditInTile');
+
         $inner = $this->RegoFelder($this->Kachelfelder($naechster))
+            . ($bedienbar ? '<div class="punkte" id="rego-punkte"></div>' : '')
             . $this->RegoButtons(
                 '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
                 . 'onclick="regoSchalten()">unbekannt</button>'
@@ -575,17 +642,121 @@ function regoRenderSkip(uebersprungen) {
     knopf.textContent = uebersprungen === true ? 'Doch schalten' : 'Überspringen';
     knopf.classList.toggle('szene-aktiv', uebersprungen === true);
 }
+function regoAendern(index, feld, wert) {
+    requestAction('Punkt', JSON.stringify({index: index, feld: feld, wert: wert}));
+}
+function regoRenderPunkte(punkte) {
+    window.regoState.Punkte = punkte;
+    var liste = document.getElementById('rego-punkte');
+    liste.innerHTML = '';
+
+    (punkte || []).forEach(function (punkt) {
+        var zeile = document.createElement('div');
+        zeile.className = 'punkt' + (punkt.aktiv ? '' : ' punkt-aus');
+
+        var schalter = document.createElement('button');
+        schalter.type = 'button';
+        schalter.className = 'punkt-an' + (punkt.aktiv ? ' punkt-an-ein' : '');
+        schalter.title = punkt.aktiv ? 'Punkt aussetzen' : 'Punkt einschalten';
+        schalter.onclick = function () { regoAendern(punkt.index, 'aktiv', !punkt.aktiv); };
+        zeile.appendChild(schalter);
+
+        if (punkt.astro) {
+            var astro = document.createElement('span');
+            astro.className = 'punkt-zeit punkt-astro';
+            astro.textContent = punkt.astro;
+            zeile.appendChild(astro);
+        } else {
+            var zeit = document.createElement('input');
+            zeit.type = 'time';
+            zeit.className = 'punkt-zeit';
+            zeit.value = punkt.zeit;
+            zeit.onchange = function () { regoAendern(punkt.index, 'zeit', this.value); };
+            zeile.appendChild(zeit);
+        }
+
+        if (punkt.tage) {
+            var tage = document.createElement('span');
+            tage.className = 'punkt-tage';
+            punkt.tage.forEach(function (tag, i) {
+                var t = document.createElement('button');
+                t.type = 'button';
+                t.className = 'tag' + (tag.an ? ' tag-an' : '');
+                t.textContent = tag.kurz;
+                t.onclick = function () { regoAendern(punkt.index, 'tag', i + 1); };
+                tage.appendChild(t);
+            });
+            zeile.appendChild(tage);
+        }
+
+        var ziel = document.createElement('span');
+        ziel.className = 'punkt-ziel';
+        ziel.textContent = punkt.ziel;
+        zeile.appendChild(ziel);
+
+        liste.appendChild(zeile);
+    });
+
+    if (!(punkte || []).length) {
+        var leer = document.createElement('span');
+        leer.className = 'punkt-leer';
+        leer.textContent = 'Noch kein Schaltpunkt angelegt';
+        liste.appendChild(leer);
+    }
+}
 window.regoHandlers['Aktiv'] = regoRenderAktiv;
 window.regoHandlers['Skip'] = regoRenderSkip;
 regoRenderAktiv(window.regoState.Aktiv);
 regoRenderSkip(window.regoState.Skip);
+if (document.getElementById('rego-punkte')) {
+    window.regoHandlers['Punkte'] = regoRenderPunkte;
+    regoRenderPunkte(window.regoState.Punkte);
+}
 JS;
 
         return $this->RegoTile('zeitschaltuhr', $inner, $script, [
             'Aktiv'  => $this->GetValue('Aktiv'),
             'Felder' => $this->Kachelfelder($naechster),
             'Skip'   => ($naechster !== null) && $this->IstUebersprungen($naechster['index'], $naechster['zeit']),
+            'Punkte' => $bedienbar ? $this->Kachelpunkte() : [],
         ]);
+    }
+
+    /**
+     * Die Schaltpunkte, wie die Kachel sie zeigt und bedienen laesst:
+     * Uhrzeit, Wochentage und ein Schalter je Punkt. Was ein Objekt auswaehlen
+     * muss -- das Ziel -- bleibt der Konsole vorbehalten, dafuer braucht es
+     * den Objektbaum.
+     */
+    private function Kachelpunkte(): array
+    {
+        $wochenuhr = ($this->ReadPropertyInteger('Mode') == 1);
+        $zeilen = [];
+
+        foreach ($this->Punkte() as $index => $punkt) {
+            $astro = ((int) ($punkt['TimeType'] ?? 0)) != 0;
+
+            $tage = null;
+            if ($wochenuhr) {
+                $tage = [];
+                foreach (self::TAGE as $nummer => $kuerzel) {
+                    $tage[] = ['kurz' => $kuerzel, 'an' => (bool) ($punkt['D' . $nummer] ?? false)];
+                }
+            }
+
+            $zeit = json_decode((string) ($punkt['Time'] ?? ''), true);
+
+            $zeilen[] = [
+                'index' => $index,
+                'aktiv' => (bool) ($punkt['Active'] ?? true),
+                'zeit'  => sprintf('%02d:%02d', (int) ($zeit['hour'] ?? 0), (int) ($zeit['minute'] ?? 0)),
+                'astro' => $astro ? $this->Zeittext($punkt) : null,
+                'tage'  => $tage,
+                'ziel'  => $this->Zieltext($punkt),
+            ];
+        }
+
+        return $zeilen;
     }
 
     /**

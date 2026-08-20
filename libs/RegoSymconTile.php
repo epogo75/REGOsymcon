@@ -548,6 +548,41 @@ svg{display:block}
     background:var(--surface-3);
 }
 
+/* Zeitschaltuhr: je Schaltpunkt eine Zeile, in der Visu bedienbar */
+.punkte{display:flex; flex-direction:column; gap:.3rem; width:100%; min-height:0; overflow:auto}
+.punkt{
+    display:flex; align-items:center; gap:.4rem; width:100%;
+    background:var(--surface-3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:.3rem .4rem;
+}
+.punkt-aus{opacity:.5}
+.punkt-an{
+    flex:0 0 auto; width:14px; height:14px; padding:0; border-radius:50%;
+    border:1px solid var(--border); background:var(--surface-hover); cursor:pointer;
+}
+.punkt-an-ein{background:var(--accent); border-color:var(--accent)}
+.punkt-zeit{
+    flex:0 0 auto; font-size:.82rem; font-weight:600; color:var(--text);
+    font-variant-numeric:tabular-nums; background:transparent;
+    border:1px solid transparent; border-radius:var(--radius-sm); padding:.05rem .15rem;
+}
+input.punkt-zeit{cursor:pointer}
+input.punkt-zeit:hover{border-color:var(--border)}
+.punkt-astro{white-space:nowrap; color:var(--text-faint); font-weight:500}
+.punkt-tage{display:flex; gap:.1rem; flex:0 0 auto}
+.tag{
+    width:1.15rem; padding:0; font-size:.6rem; line-height:1.3; cursor:pointer;
+    background:transparent; border:1px solid transparent; border-radius:var(--radius-sm);
+    color:var(--text-faint);
+}
+.tag-an{background:var(--surface-hover); border-color:var(--border); color:var(--text); font-weight:700}
+.punkt-ziel{
+    flex:1 1 auto; min-width:0; font-size:.72rem; color:var(--text-faint);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:right;
+}
+.punkt-leer{font-size:.78rem; color:var(--text-faint)}
+.tile[data-type="zeitschaltuhr"] .stack{flex:1 1 auto; min-height:0}
+
 /* Verweis, der wie ein Knopf aussieht (URL-Aufruf) */
 .knopf-link{
     flex:1 1 0; min-height:2.5rem;
