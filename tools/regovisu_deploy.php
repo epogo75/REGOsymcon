@@ -73,7 +73,7 @@ $SONDER_MASSE = [
     ],
 ];
 
-const REGOVISU_REPOSITORY = 'https://github.com/epogo75/SymconREGOvisu';
+const REGOVISU_REPOSITORY = 'https://github.com/epogo75/REGOsymcon';
 // So heißt die Bibliothek in Symcons Modulverwaltung (der Ordnername).
 const REGOVISU_BIBLIOTHEK = 'REGOvisu';
 
