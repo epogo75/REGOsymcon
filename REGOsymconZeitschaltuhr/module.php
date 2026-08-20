@@ -671,6 +671,11 @@ class REGOsymconZeitschaltuhr extends IPSModule
         $inner = $this->RegoFelder($this->Kachelfelder($naechster))
             . ($bedienbar
                 ? '<div class="punkte" id="rego-punkte"></div>'
+                  . '<div class="waehler" id="rego-waehler" hidden>'
+                  . '<div class="waehler-kopf"><span id="rego-waehler-titel"></span>'
+                  . '<button type="button" class="waehler-zu" onclick="regoWahlZu()">×</button></div>'
+                  . '<div class="waehler-liste" id="rego-waehler-liste"></div>'
+                  . '</div>'
                   . '<div class="punkt-fuss">'
                   . '<button type="button" class="punkt-neu" onclick="requestAction(\'Neu\', true)">+ Schaltpunkt</button>'
                   . '<button type="button" id="rego-art" onclick="regoArt()"></button>'
@@ -701,20 +706,48 @@ function regoRenderSkip(uebersprungen) {
 function regoAendern(index, feld, wert) {
     requestAction('Punkt', JSON.stringify({index: index, feld: feld, wert: wert}));
 }
-function regoWaehler(klasse, optionen, wert, beim) {
-    var feld = document.createElement('select');
-    feld.className = klasse;
+function regoWahlZu() {
+    document.getElementById('rego-waehler').hidden = true;
+}
+// Auswahl ueber Knoepfe statt ueber ein select: das Auswahlfeld des Browsers
+// laesst sich im Rahmen der Kachel nicht aufklappen, Knoepfe funktionieren.
+function regoWahlAuf(titel, optionen, wert, beim) {
+    var blatt = document.getElementById('rego-waehler');
+    var liste = document.getElementById('rego-waehler-liste');
+    document.getElementById('rego-waehler-titel').textContent = titel;
+    liste.innerHTML = '';
+
     optionen.forEach(function (o) {
-        var opt = document.createElement('option');
-        opt.value = o.wert;
-        opt.textContent = o.text;
-        if (String(o.wert) === String(wert)) {
-            opt.selected = true;
-        }
-        feld.appendChild(opt);
+        var knopf = document.createElement('button');
+        knopf.type = 'button';
+        knopf.className = 'waehler-eintrag' + (String(o.wert) === String(wert) ? ' waehler-hier' : '');
+        knopf.textContent = o.text;
+        knopf.onclick = function () {
+            regoWahlZu();
+            beim(o.wert);
+        };
+        liste.appendChild(knopf);
     });
-    feld.onchange = function () { beim(this.value); };
-    return feld;
+
+    blatt.hidden = false;
+    liste.scrollTop = 0;
+}
+function regoWaehler(klasse, titel, optionen, wert, beim) {
+    var knopf = document.createElement('button');
+    knopf.type = 'button';
+    knopf.className = 'waehler-knopf ' + klasse;
+
+    var gewaehlt = null;
+    optionen.forEach(function (o) {
+        if (String(o.wert) === String(wert)) {
+            gewaehlt = o;
+        }
+    });
+    knopf.textContent = gewaehlt ? gewaehlt.text : (optionen.length ? optionen[0].text : '—');
+    knopf.title = titel;
+    knopf.onclick = function () { regoWahlAuf(titel, optionen, wert, beim); };
+
+    return knopf;
 }
 function regoArt() {
     requestAction('Art', window.regoState.Wochenuhr !== true);
@@ -736,34 +769,45 @@ function regoRenderPunkte(punkte) {
         var zeile = document.createElement('div');
         zeile.className = 'punkt' + (punkt.aktiv ? '' : ' punkt-aus');
 
+        // Zwei Reihen: oben wann, unten was. Alles nebeneinander quetscht in
+        // einer schmalen Kachel die Ziel-Auswahl auf null Breite zusammen.
+        var oben = document.createElement('div');
+        oben.className = 'punkt-reihe';
+        var unten = document.createElement('div');
+        unten.className = 'punkt-reihe';
+
         var schalter = document.createElement('button');
         schalter.type = 'button';
         schalter.className = 'punkt-an' + (punkt.aktiv ? ' punkt-an-ein' : '');
         schalter.title = punkt.aktiv ? 'Punkt aussetzen' : 'Punkt einschalten';
         schalter.onclick = function () { regoAendern(punkt.index, 'aktiv', !punkt.aktiv); };
-        zeile.appendChild(schalter);
+        oben.appendChild(schalter);
 
-        zeile.appendChild(regoWaehler('punkt-art', [
-            {wert: 0, text: 'Uhr'}, {wert: 1, text: 'SA'}, {wert: 2, text: 'SU'}
+        oben.appendChild(regoWaehler('punkt-art', 'Zeitpunkt', [
+            {wert: 0, text: 'Uhr'}, {wert: 1, text: 'Sonnenaufgang'}, {wert: 2, text: 'Sonnenuntergang'}
         ], punkt.zeitart, function (v) { regoAendern(punkt.index, 'zeitart', Number(v)); }));
 
         if (punkt.zeitart) {
-            var minuten = document.createElement('input');
-            minuten.type = 'number';
-            minuten.className = 'punkt-zeit punkt-offset';
-            minuten.min = -720;
-            minuten.max = 720;
-            minuten.value = punkt.verschiebung;
-            minuten.title = punkt.astro;
-            minuten.onchange = function () { regoAendern(punkt.index, 'verschiebung', Number(this.value)); };
-            zeile.appendChild(minuten);
+            var stufen = [];
+            for (var m = -120; m <= 120; m += 5) {
+                stufen.push({wert: m, text: (m > 0 ? '+' : '') + m + ' min'});
+            }
+            oben.appendChild(regoWaehler('punkt-zeit punkt-offset', 'Verschiebung', stufen, punkt.verschiebung,
+                function (v) { regoAendern(punkt.index, 'verschiebung', Number(v)); }));
         } else {
-            var zeit = document.createElement('input');
-            zeit.type = 'time';
-            zeit.className = 'punkt-zeit';
-            zeit.value = punkt.zeit;
-            zeit.onchange = function () { regoAendern(punkt.index, 'zeit', this.value); };
-            zeile.appendChild(zeit);
+            var zeiten = [];
+            for (var stunde = 0; stunde < 24; stunde++) {
+                for (var minute = 0; minute < 60; minute += 15) {
+                    var t = ('0' + stunde).slice(-2) + ':' + ('0' + minute).slice(-2);
+                    zeiten.push({wert: t, text: t});
+                }
+            }
+            if (!zeiten.some(function (z) { return z.wert === punkt.zeit; })) {
+                zeiten.push({wert: punkt.zeit, text: punkt.zeit});
+                zeiten.sort(function (a, b) { return a.wert < b.wert ? -1 : 1; });
+            }
+            oben.appendChild(regoWaehler('punkt-zeit', 'Uhrzeit', zeiten, punkt.zeit,
+                function (v) { regoAendern(punkt.index, 'zeit', v); }));
         }
 
         if (punkt.tage) {
@@ -777,34 +821,12 @@ function regoRenderPunkte(punkte) {
                 t.onclick = function () { regoAendern(punkt.index, 'tag', i + 1); };
                 tage.appendChild(t);
             });
-            zeile.appendChild(tage);
+            oben.appendChild(tage);
         }
 
-        var ziele = [{wert: 0, text: '— Ziel wählen —'}].concat(window.regoState.Ziele || []);
-        zeile.appendChild(regoWaehler('punkt-ziel', ziele, punkt.ziel,
-            function (v) { regoAendern(punkt.index, 'ziel', Number(v)); }));
-
-        var feld = punkt.wertfeld || {typ: 'keins'};
-        if (feld.typ === 'auswahl') {
-            zeile.appendChild(regoWaehler('punkt-wert', feld.optionen, punkt.wert,
-                function (v) { regoAendern(punkt.index, 'wert', v); }));
-        } else if (feld.typ === 'zahl') {
-            var zahl = document.createElement('input');
-            zahl.type = 'number';
-            zahl.className = 'punkt-wert';
-            zahl.min = feld.min;
-            zahl.max = feld.max;
-            zahl.step = feld.schritt;
-            zahl.title = feld.einheit;
-            try { zahl.value = JSON.parse(punkt.wert); } catch (e) { zahl.value = feld.min; }
-            zahl.onchange = function () { regoAendern(punkt.index, 'wert', JSON.stringify(Number(this.value))); };
-            zeile.appendChild(zahl);
-        } else {
-            var leer = document.createElement('span');
-            leer.className = 'punkt-wert punkt-wert-leer';
-            leer.textContent = feld.typ === 'keins' ? '' : punkt.wert;
-            zeile.appendChild(leer);
-        }
+        var luecke = document.createElement('span');
+        luecke.className = 'punkt-luecke';
+        oben.appendChild(luecke);
 
         var weg = document.createElement('button');
         weg.type = 'button';
@@ -812,8 +834,35 @@ function regoRenderPunkte(punkte) {
         weg.title = 'Schaltpunkt löschen';
         weg.textContent = '×';
         weg.onclick = function () { regoAendern(punkt.index, 'weg', true); };
-        zeile.appendChild(weg);
+        oben.appendChild(weg);
 
+        var ziele = [{wert: 0, text: '— Ziel wählen —'}].concat(window.regoState.Ziele || []);
+        unten.appendChild(regoWaehler('punkt-zielwahl', 'Ziel', ziele, punkt.ziel,
+            function (v) { regoAendern(punkt.index, 'ziel', Number(v)); }));
+
+        var feld = punkt.wertfeld || {typ: 'keins'};
+        if (feld.typ === 'auswahl') {
+            unten.appendChild(regoWaehler('punkt-wert', 'Zielwert', feld.optionen, punkt.wert,
+                function (v) { regoAendern(punkt.index, 'wert', v); }));
+        } else if (feld.typ === 'zahl') {
+            var jetzt = 0;
+            try { jetzt = Number(JSON.parse(punkt.wert)) || 0; } catch (e) { jetzt = feld.min; }
+            var stufen = [];
+            for (var w = feld.min; w <= feld.max; w += Math.max(feld.schritt, (feld.max - feld.min) / 20)) {
+                stufen.push({wert: JSON.stringify(Math.round(w * 100) / 100),
+                             text: (Math.round(w * 100) / 100) + (feld.einheit ? ' ' + feld.einheit : '')});
+            }
+            unten.appendChild(regoWaehler('punkt-wert', 'Zielwert', stufen, JSON.stringify(jetzt),
+                function (v) { regoAendern(punkt.index, 'wert', v); }));
+        } else if (feld.typ !== 'keins') {
+            var text = document.createElement('span');
+            text.className = 'punkt-wert-leer';
+            text.textContent = punkt.wert;
+            unten.appendChild(text);
+        }
+
+        zeile.appendChild(oben);
+        zeile.appendChild(unten);
         liste.appendChild(zeile);
     });
 
@@ -889,8 +938,11 @@ JS;
                     continue;
                 }
                 $ordner = IPS_GetObject($id)['ParentID'];
+                // "wert"/"text" wie bei jeder anderen Auswahl der Kachel --
+                // eine eigene Schreibweise hier hiesse, dass jede Option den
+                // Wert "undefined" bekommt und sich nichts auswaehlen laesst.
                 $ziele[] = [
-                    'id'   => $id,
+                    'wert' => $id,
                     'text' => (($ordner > 0) ? IPS_GetName($ordner) . ' · ' : '') . IPS_GetName($id),
                 ];
             }

@@ -65,6 +65,14 @@ $SONDER_MASSE = [
         'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
         'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
     ],
+    // Zeitschaltuhr: eine Zeile je Schaltpunkt, in der bedienbaren Fassung
+    // zwei. Auf dem Telefon braucht sie am meisten Platz -- dort ist die
+    // Kachel schmal, also wird jede Zeile hoch.
+    '{182B054E-7A6F-4A5D-9B32-F1EF596B1B26}' => [
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
+        'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 8], 'hoch' => ['breite' => 6, 'hoehe' => 8]],
+        'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 6], 'hoch' => ['breite' => 6, 'hoehe' => 6]],
+    ],
     // Zähler: Leistung, Zählerstand, Heute und die übrigen Messwerte. Auf dem
     // Rechner eine Stufe hoeher als die Infokarte -- mit zwei Reihen muesste
     // man in der Kachel scrollen, und das Raster kennt nur ganze Stufen.
@@ -963,6 +971,27 @@ function richte_visualisierung_ein($visuRootId, $kachelIds, $alleMasse, $sonderM
 }
 
 /**
+ * Alle REGOsymcon-Instanzen unterhalb der Visu -- auch die, die das Deploy
+ * nicht selbst angelegt hat.
+ */
+function eigene_kacheln($wurzelId)
+{
+    $gefunden = [];
+
+    foreach (IPS_GetChildrenIDs($wurzelId) as $kind) {
+        if (IPS_InstanceExists($kind)
+            && str_starts_with(IPS_GetInstance($kind)['ModuleInfo']['ModuleName'], 'REGOsymcon')) {
+            $gefunden[] = $kind;
+        }
+        if (in_array(IPS_GetObject($kind)['ObjectType'], [0, 1], true)) {
+            $gefunden = array_merge($gefunden, eigene_kacheln($kind));
+        }
+    }
+
+    return $gefunden;
+}
+
+/**
  * Fischt die Kachelkonfigurations-Liste aus dem Konfigurationsformular.
  */
 function finde_gridkonfiguration($items)
@@ -1690,6 +1719,12 @@ $infoId = sync_infokachel($visuId, $aussentemperatur, $index, $visited);
 if ($infoId != 0) {
     $kachelIds[] = $infoId;
 }
+
+// Kacheln, die jemand von Hand in die Visu gestellt hat -- etwa eine
+// Zeitschaltuhr oder eine Szene. Das Deploy legt sie nicht an, soll ihnen aber
+// dieselben Masse geben wie den eigenen; sonst steht eine Uhr im Standardmass
+// da und man muss sie in jeder Ansicht einzeln ziehen.
+$kachelIds = array_values(array_unique(array_merge($kachelIds, eigene_kacheln($visuId))));
 
 $aufgezeichnet = aktiviere_aufzeichnung($messwerte);
 $nurLesen = setze_nur_lesen($messwerte);

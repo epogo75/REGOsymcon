@@ -551,10 +551,12 @@ svg{display:block}
 /* Zeitschaltuhr: je Schaltpunkt eine Zeile, in der Visu bedienbar */
 .punkte{display:flex; flex-direction:column; gap:.3rem; width:100%; min-height:0; overflow:auto}
 .punkt{
-    display:flex; align-items:center; gap:.4rem; width:100%;
+    display:flex; flex-direction:column; gap:.25rem; width:100%;
     background:var(--surface-3); border:1px solid var(--border);
     border-radius:var(--radius-sm); padding:.3rem .4rem;
 }
+.punkt-reihe{display:flex; align-items:center; gap:.35rem; width:100%; min-width:0}
+.punkt-luecke{flex:1 1 auto}
 .punkt-aus{opacity:.5}
 .punkt-an{
     flex:0 0 auto; width:14px; height:14px; padding:0; border-radius:50%;
@@ -566,8 +568,7 @@ svg{display:block}
     font-variant-numeric:tabular-nums; background:transparent;
     border:1px solid transparent; border-radius:var(--radius-sm); padding:.05rem .15rem;
 }
-input.punkt-zeit{cursor:pointer}
-input.punkt-zeit:hover{border-color:var(--border)}
+button.punkt-zeit{background:var(--surface-2); border-color:var(--border)}
 .punkt-astro{white-space:nowrap; color:var(--text-faint); font-weight:500}
 .punkt-tage{display:flex; gap:.1rem; flex:0 0 auto}
 .tag{
@@ -576,26 +577,62 @@ input.punkt-zeit:hover{border-color:var(--border)}
     color:var(--text-faint);
 }
 .tag-an{background:var(--surface-hover); border-color:var(--border); color:var(--text); font-weight:700}
-.punkt-ziel{
-    flex:1 1 auto; min-width:0; font-size:.72rem; color:var(--text-faint);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:right;
+
+.punkt-leer{font-size:.85rem; color:var(--text-faint)}
+
+/* Schmale Kachel -- auf dem Telefon ist jede Zeile sonst nicht mehr zu treffen
+   und die Auswahl nicht mehr zu lesen. */
+@media (max-width: 460px) {
+    .waehler-knopf{font-size:.9rem; padding:.35rem .45rem}
+    .waehler-eintrag{font-size:1.05rem; min-height:2.8rem}
+    .tag{width:1.6rem; font-size:.8rem; line-height:1.7}
+    .punkt-an{width:18px; height:18px}
+    .punkt-weg{width:1.8rem; font-size:1.2rem}
+    .punkt-fuss button{min-height:2.2rem; font-size:.85rem}
 }
-.punkt-leer{font-size:.78rem; color:var(--text-faint)}
-.punkt select{
+.waehler-knopf{
     font-size:.72rem; color:var(--text); background:var(--surface-2);
     border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:.1rem .15rem; max-width:100%; cursor:pointer;
+    padding:.12rem .3rem; max-width:100%; cursor:pointer; text-align:left;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+.waehler-knopf:hover{border-color:var(--accent); color:var(--accent)}
+
+/* Auswahlblatt: liegt ueber der Kachel, weil das Auswahlfeld des Browsers
+   sich im Rahmen der Kachel nicht aufklappen laesst. */
+.waehler{
+    position:absolute; inset:0; z-index:5; display:flex; flex-direction:column;
+    background:var(--surface-1); border-radius:var(--radius-lg); padding:.4rem;
+}
+.waehler[hidden]{display:none}
+.waehler-kopf{
+    display:flex; align-items:center; justify-content:space-between; gap:.4rem;
+    font-size:.9rem; font-weight:600; color:var(--text-faint); padding:0 .1rem .4rem;
+}
+.waehler-zu{
+    width:2rem; height:2rem; padding:0; line-height:1.2; font-size:1.1rem; cursor:pointer;
+    background:transparent; border:1px solid var(--border);
+    border-radius:var(--radius-sm); color:var(--text);
+}
+.waehler-liste{display:flex; flex-direction:column; gap:.25rem; overflow:auto; min-height:0}
+.waehler-eintrag{
+    text-align:left; font-size:1rem; line-height:1.3; padding:.55rem .6rem;
+    min-height:2.4rem; cursor:pointer;
+    background:var(--surface-3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.waehler-eintrag:hover{border-color:var(--accent); color:var(--accent)}
+.waehler-hier{background:var(--surface-hover); border-color:var(--accent); font-weight:700}
 .punkt-art{flex:0 0 auto}
-.punkt-ziel{flex:1 1 auto; min-width:0}
-select.punkt-wert{flex:0 0 auto; max-width:6.5rem}
-input.punkt-wert{
-    flex:0 0 auto; width:3.6rem; font-size:.72rem; color:var(--text);
-    background:var(--surface-2); border:1px solid var(--border);
-    border-radius:var(--radius-sm); padding:.1rem .2rem; font-variant-numeric:tabular-nums;
-}
+/* Die Ziel-Auswahl darf schrumpfen, aber nicht verschwinden -- ohne
+   Mindestbreite quetschen die Wochentage sie in einer schmalen Kachel auf
+   null, und dann sieht sie aus wie ein leeres Feld. */
+.punkt-zielwahl{flex:1 1 auto; min-width:5.5rem}
+.punkt-wert{flex:0 0 auto; max-width:7rem}
+
 .punkt-wert-leer{flex:0 0 auto; font-size:.72rem; color:var(--text-faint)}
-input.punkt-offset{width:3.4rem}
+.punkt-offset{min-width:4rem}
 .punkt-weg{
     flex:0 0 auto; width:1.2rem; padding:0; line-height:1;
     background:transparent; border:1px solid transparent; border-radius:var(--radius-sm);
@@ -609,6 +646,7 @@ input.punkt-offset{width:3.4rem}
     border-radius:var(--radius-sm); color:var(--text);
 }
 .punkt-fuss button:hover{border-color:var(--accent); color:var(--accent)}
+.tile[data-type="zeitschaltuhr"]{position:relative}
 .tile[data-type="zeitschaltuhr"] .stack{flex:1 1 auto; min-height:0}
 
 /* Verweis, der wie ein Knopf aussieht (URL-Aufruf) */
