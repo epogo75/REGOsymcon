@@ -59,13 +59,15 @@ $SONDER_MASSE = [
         'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 4], 'hoch' => ['breite' => 6, 'hoehe' => 4]],
     ],
     // Info: vier Felder nebeneinander. Auf dem Rechner so hoch wie die
-    // Zaehlerkarte, damit beide in einer Reihe gleich hoch stehen.
+    // Zaehlerkarte und wie die uebrigen Kacheln -- eine Reihe, eine Hoehe.
     '{63561319-730C-4139-8F95-1DA3BD142C83}' => [
-        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
+        'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
         'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
         'Tablet'  => ['quer' => ['breite' => 12, 'hoehe' => 2], 'hoch' => ['breite' => 6, 'hoehe' => 2]],
     ],
-    // Zähler: Leistung, Zählerstand, Heute und die übrigen Messwerte
+    // Zähler: Leistung, Zählerstand, Heute und die übrigen Messwerte. Auf dem
+    // Rechner eine Stufe hoeher als die Infokarte -- mit zwei Reihen muesste
+    // man in der Kachel scrollen, und das Raster kennt nur ganze Stufen.
     '{A9DEE307-F3B2-48A2-9960-245799F8BBD9}' => [
         'Desktop' => ['quer' => ['breite' => 6,  'hoehe' => 3], 'hoch' => ['breite' => 6, 'hoehe' => 3]],
         'Phone'   => ['quer' => ['breite' => 12, 'hoehe' => 5], 'hoch' => ['breite' => 6, 'hoehe' => 5]],
