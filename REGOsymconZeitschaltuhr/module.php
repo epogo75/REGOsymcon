@@ -90,6 +90,17 @@ class REGOsymconZeitschaltuhr extends IPSModule
             case 'Punkt':
                 $this->PunktAendern((string) $Value);
                 break;
+
+            case 'Neu':
+                $this->PunktAnlegen();
+                break;
+
+            case 'Art':
+                if ($this->ReadPropertyBoolean('EditInTile')) {
+                    IPS_SetProperty($this->InstanceID, 'Mode', $Value ? 1 : 0);
+                    IPS_ApplyChanges($this->InstanceID);
+                }
+                break;
         }
     }
 
@@ -139,6 +150,43 @@ class REGOsymconZeitschaltuhr extends IPSModule
                     return;
                 }
                 $punkte[$index]['D' . $tag] = !($punkte[$index]['D' . $tag] ?? false);
+                break;
+
+            case 'ziel':
+                $ziel = (int) ($daten['wert'] ?? 0);
+                if (($ziel != 0) && !IPS_ObjectExists($ziel)) {
+                    return;
+                }
+                $punkte[$index]['TargetID'] = $ziel;
+                // Der alte Zielwert passt selten zum neuen Ziel -- der
+                // aktuelle Zustand ist der bessere Anfang.
+                $variable = $this->IstSzene($ziel) ? 0 : $this->Zielvariable($ziel);
+                $punkte[$index]['Value'] = ($variable > 0) ? json_encode(GetValue($variable)) : 'null';
+                break;
+
+            case 'wert':
+                $roh = (string) ($daten['wert'] ?? 'null');
+                if ((json_decode($roh, true) === null) && (trim($roh) !== 'null')) {
+                    return;
+                }
+                $punkte[$index]['Value'] = $roh;
+                break;
+
+            case 'zeitart':
+                $art = (int) ($daten['wert'] ?? 0);
+                if (($art < 0) || ($art > 2)) {
+                    return;
+                }
+                $punkte[$index]['TimeType'] = $art;
+                break;
+
+            case 'verschiebung':
+                $punkte[$index]['Offset'] = max(-720, min(720, (int) ($daten['wert'] ?? 0)));
+                break;
+
+            case 'weg':
+                unset($punkte[$index]);
+                $punkte = array_values($punkte);
                 break;
 
             default:
@@ -328,6 +376,8 @@ class REGOsymconZeitschaltuhr extends IPSModule
         $this->RegoPush('Aktiv', $this->GetValue('Aktiv'));
         $this->RegoPush('Felder', $this->Kachelfelder($naechster));
         if ($this->ReadPropertyBoolean('EditInTile')) {
+            $this->RegoPush('Ziele', $this->Ziele());
+            $this->RegoPush('Wochenuhr', $this->ReadPropertyInteger('Mode') == 1);
             $this->RegoPush('Punkte', $this->Kachelpunkte());
         }
         $this->RegoPush('Skip', ($naechster !== null) && $this->IstUebersprungen($naechster['index'], $naechster['zeit']));
@@ -619,7 +669,13 @@ class REGOsymconZeitschaltuhr extends IPSModule
         $bedienbar = $this->ReadPropertyBoolean('EditInTile');
 
         $inner = $this->RegoFelder($this->Kachelfelder($naechster))
-            . ($bedienbar ? '<div class="punkte" id="rego-punkte"></div>' : '')
+            . ($bedienbar
+                ? '<div class="punkte" id="rego-punkte"></div>'
+                  . '<div class="punkt-fuss">'
+                  . '<button type="button" class="punkt-neu" onclick="requestAction(\'Neu\', true)">+ Schaltpunkt</button>'
+                  . '<button type="button" id="rego-art" onclick="regoArt()"></button>'
+                  . '</div>'
+                : '')
             . $this->RegoButtons(
                 '<button type="button" id="rego-onoff" class="onoff-button onoff-button-unknown" '
                 . 'onclick="regoSchalten()">unbekannt</button>'
@@ -645,10 +701,36 @@ function regoRenderSkip(uebersprungen) {
 function regoAendern(index, feld, wert) {
     requestAction('Punkt', JSON.stringify({index: index, feld: feld, wert: wert}));
 }
+function regoWaehler(klasse, optionen, wert, beim) {
+    var feld = document.createElement('select');
+    feld.className = klasse;
+    optionen.forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o.wert;
+        opt.textContent = o.text;
+        if (String(o.wert) === String(wert)) {
+            opt.selected = true;
+        }
+        feld.appendChild(opt);
+    });
+    feld.onchange = function () { beim(this.value); };
+    return feld;
+}
+function regoArt() {
+    requestAction('Art', window.regoState.Wochenuhr !== true);
+}
 function regoRenderPunkte(punkte) {
     window.regoState.Punkte = punkte;
     var liste = document.getElementById('rego-punkte');
+    if (!liste) {
+        return;
+    }
     liste.innerHTML = '';
+
+    var knopf = document.getElementById('rego-art');
+    if (knopf) {
+        knopf.textContent = window.regoState.Wochenuhr ? 'Wochenuhr' : 'Tagesuhr';
+    }
 
     (punkte || []).forEach(function (punkt) {
         var zeile = document.createElement('div');
@@ -661,11 +743,20 @@ function regoRenderPunkte(punkte) {
         schalter.onclick = function () { regoAendern(punkt.index, 'aktiv', !punkt.aktiv); };
         zeile.appendChild(schalter);
 
-        if (punkt.astro) {
-            var astro = document.createElement('span');
-            astro.className = 'punkt-zeit punkt-astro';
-            astro.textContent = punkt.astro;
-            zeile.appendChild(astro);
+        zeile.appendChild(regoWaehler('punkt-art', [
+            {wert: 0, text: 'Uhr'}, {wert: 1, text: 'SA'}, {wert: 2, text: 'SU'}
+        ], punkt.zeitart, function (v) { regoAendern(punkt.index, 'zeitart', Number(v)); }));
+
+        if (punkt.zeitart) {
+            var minuten = document.createElement('input');
+            minuten.type = 'number';
+            minuten.className = 'punkt-zeit punkt-offset';
+            minuten.min = -720;
+            minuten.max = 720;
+            minuten.value = punkt.verschiebung;
+            minuten.title = punkt.astro;
+            minuten.onchange = function () { regoAendern(punkt.index, 'verschiebung', Number(this.value)); };
+            zeile.appendChild(minuten);
         } else {
             var zeit = document.createElement('input');
             zeit.type = 'time';
@@ -689,19 +780,48 @@ function regoRenderPunkte(punkte) {
             zeile.appendChild(tage);
         }
 
-        var ziel = document.createElement('span');
-        ziel.className = 'punkt-ziel';
-        ziel.textContent = punkt.ziel;
-        zeile.appendChild(ziel);
+        var ziele = [{wert: 0, text: '— Ziel wählen —'}].concat(window.regoState.Ziele || []);
+        zeile.appendChild(regoWaehler('punkt-ziel', ziele, punkt.ziel,
+            function (v) { regoAendern(punkt.index, 'ziel', Number(v)); }));
+
+        var feld = punkt.wertfeld || {typ: 'keins'};
+        if (feld.typ === 'auswahl') {
+            zeile.appendChild(regoWaehler('punkt-wert', feld.optionen, punkt.wert,
+                function (v) { regoAendern(punkt.index, 'wert', v); }));
+        } else if (feld.typ === 'zahl') {
+            var zahl = document.createElement('input');
+            zahl.type = 'number';
+            zahl.className = 'punkt-wert';
+            zahl.min = feld.min;
+            zahl.max = feld.max;
+            zahl.step = feld.schritt;
+            zahl.title = feld.einheit;
+            try { zahl.value = JSON.parse(punkt.wert); } catch (e) { zahl.value = feld.min; }
+            zahl.onchange = function () { regoAendern(punkt.index, 'wert', JSON.stringify(Number(this.value))); };
+            zeile.appendChild(zahl);
+        } else {
+            var leer = document.createElement('span');
+            leer.className = 'punkt-wert punkt-wert-leer';
+            leer.textContent = feld.typ === 'keins' ? '' : punkt.wert;
+            zeile.appendChild(leer);
+        }
+
+        var weg = document.createElement('button');
+        weg.type = 'button';
+        weg.className = 'punkt-weg';
+        weg.title = 'Schaltpunkt löschen';
+        weg.textContent = '×';
+        weg.onclick = function () { regoAendern(punkt.index, 'weg', true); };
+        zeile.appendChild(weg);
 
         liste.appendChild(zeile);
     });
 
     if (!(punkte || []).length) {
-        var leer = document.createElement('span');
-        leer.className = 'punkt-leer';
-        leer.textContent = 'Noch kein Schaltpunkt angelegt';
-        liste.appendChild(leer);
+        var hinweis = document.createElement('span');
+        hinweis.className = 'punkt-leer';
+        hinweis.textContent = 'Noch kein Schaltpunkt angelegt';
+        liste.appendChild(hinweis);
     }
 }
 window.regoHandlers['Aktiv'] = regoRenderAktiv;
@@ -709,6 +829,10 @@ window.regoHandlers['Skip'] = regoRenderSkip;
 regoRenderAktiv(window.regoState.Aktiv);
 regoRenderSkip(window.regoState.Skip);
 if (document.getElementById('rego-punkte')) {
+    // Ziele und Art kommen vor den Punkten an -- gezeichnet wird erst mit
+    // den Punkten, sonst blinkt die Liste bei jeder Aenderung dreimal.
+    window.regoHandlers['Ziele'] = function (ziele) { window.regoState.Ziele = ziele; };
+    window.regoHandlers['Wochenuhr'] = function (an) { window.regoState.Wochenuhr = an; };
     window.regoHandlers['Punkte'] = regoRenderPunkte;
     regoRenderPunkte(window.regoState.Punkte);
 }
@@ -719,7 +843,104 @@ JS;
             'Felder' => $this->Kachelfelder($naechster),
             'Skip'   => ($naechster !== null) && $this->IstUebersprungen($naechster['index'], $naechster['zeit']),
             'Punkte' => $bedienbar ? $this->Kachelpunkte() : [],
+            'Ziele'  => $bedienbar ? $this->Ziele() : [],
+            'Wochenuhr' => ($this->ReadPropertyInteger('Mode') == 1),
         ]);
+    }
+
+    /**
+     * Ein neuer Schaltpunkt aus der Kachel: 18:00, alle Tage, noch ohne Ziel.
+     * Ohne Ziel schaltet er nichts -- das faellt in der Liste sofort auf und
+     * ist ehrlicher, als irgendetwas zu raten.
+     */
+    private function PunktAnlegen(): void
+    {
+        if (!$this->ReadPropertyBoolean('EditInTile')) {
+            return;
+        }
+
+        $punkte = $this->Punkte();
+        $punkte[] = [
+            'Active' => true, 'Tage' => '', 'Zeit' => '', 'Ziel' => '',
+            'D1' => true, 'D2' => true, 'D3' => true, 'D4' => true,
+            'D5' => true, 'D6' => true, 'D7' => true,
+            'TimeType' => 0, 'Time' => json_encode(['hour' => 18, 'minute' => 0, 'second' => 0]),
+            'Offset' => 0, 'TargetID' => 0, 'Value' => 'null',
+        ];
+
+        IPS_SetProperty($this->InstanceID, 'Points', json_encode($punkte));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    /**
+     * Was die Kachel als Ziel anbietet.
+     *
+     * Den Objektbaum kann eine Kachel nicht oeffnen, also stellt sie eine
+     * Liste: alles, was REGOsymcon in den Raeumen angelegt hat, plus die
+     * Szenen. Der Raum steht davor, sonst heisst die Haelfte "Deckenlicht".
+     */
+    private function Ziele(): array
+    {
+        $ziele = [];
+
+        foreach (array_merge(array_keys(self::KACHEL_ZIEL), [self::SZENE_GUID]) as $modul) {
+            foreach (@IPS_GetInstanceListByModuleID($modul) ?: [] as $id) {
+                if (($modul !== self::SZENE_GUID) && ($this->Zielvariable($id) == 0)) {
+                    continue;
+                }
+                $ordner = IPS_GetObject($id)['ParentID'];
+                $ziele[] = [
+                    'id'   => $id,
+                    'text' => (($ordner > 0) ? IPS_GetName($ordner) . ' · ' : '') . IPS_GetName($id),
+                ];
+            }
+        }
+
+        usort($ziele, function ($a, $b) {
+            return strcasecmp($a['text'], $b['text']);
+        });
+
+        return $ziele;
+    }
+
+    /**
+     * Das passende Bedienelement fuer den Zielwert -- abgeleitet aus dem
+     * Profil der Zielvariable, damit in der Kachel "An" steht und nicht 1.
+     */
+    private function Wertfeld(int $variableID): array
+    {
+        if (($variableID == 0) || !IPS_VariableExists($variableID)) {
+            return ['typ' => 'keins'];
+        }
+
+        $variable = IPS_GetVariable($variableID);
+        $profil = $variable['VariableCustomProfile'] ?: $variable['VariableProfile'];
+        $profil = ($profil !== '') && IPS_VariableProfileExists($profil) ? IPS_GetVariableProfile($profil) : null;
+
+        if (!empty($profil['Associations'])) {
+            $optionen = [];
+            foreach ($profil['Associations'] as $association) {
+                $wert = $association['Value'];
+                if ($variable['VariableType'] == 0) {
+                    $wert = (bool) $wert;
+                }
+                $optionen[] = ['wert' => json_encode($wert), 'text' => $association['Name']];
+            }
+
+            return ['typ' => 'auswahl', 'optionen' => $optionen];
+        }
+
+        if (in_array($variable['VariableType'], [1, 2], true)) {
+            return [
+                'typ'    => 'zahl',
+                'min'    => (float) ($profil['MinValue'] ?? 0),
+                'max'    => (float) ($profil['MaxValue'] ?? 100),
+                'schritt' => ($variable['VariableType'] == 1) ? 1 : 0.5,
+                'einheit' => trim((string) ($profil['Suffix'] ?? '')),
+            ];
+        }
+
+        return ['typ' => 'text'];
     }
 
     /**
@@ -746,13 +967,21 @@ JS;
 
             $zeit = json_decode((string) ($punkt['Time'] ?? ''), true);
 
+            $ziel = (int) ($punkt['TargetID'] ?? 0);
+            $variable = $this->IstSzene($ziel) ? 0 : $this->Zielvariable($ziel);
+
             $zeilen[] = [
-                'index' => $index,
-                'aktiv' => (bool) ($punkt['Active'] ?? true),
-                'zeit'  => sprintf('%02d:%02d', (int) ($zeit['hour'] ?? 0), (int) ($zeit['minute'] ?? 0)),
-                'astro' => $astro ? $this->Zeittext($punkt) : null,
-                'tage'  => $tage,
-                'ziel'  => $this->Zieltext($punkt),
+                'index'   => $index,
+                'aktiv'   => (bool) ($punkt['Active'] ?? true),
+                'zeit'    => sprintf('%02d:%02d', (int) ($zeit['hour'] ?? 0), (int) ($zeit['minute'] ?? 0)),
+                'astro'   => $astro ? $this->Zeittext($punkt) : null,
+                'zeitart' => (int) ($punkt['TimeType'] ?? 0),
+                'verschiebung' => (int) ($punkt['Offset'] ?? 0),
+                'tage'    => $tage,
+                'ziel'    => $ziel,
+                'zieltext' => $this->Zieltext($punkt),
+                'wert'    => (string) ($punkt['Value'] ?? 'null'),
+                'wertfeld' => $this->Wertfeld($variable),
             ];
         }
 

@@ -159,12 +159,28 @@ aufgerufen.
 Die Kachel zeigt die nächste Schaltung mit ihrem Ziel und hat zwei Knöpfe: die
 Uhr an- und ausschalten, und den nächsten Termin auslassen.
 
-Mit dem Häkchen **„Schaltpunkte in der Kachel bedienbar machen"** kommt die
-Liste der Schaltpunkte dazu: je Punkt ein Schalter, die Uhrzeit zum Ändern und
-die Wochentage zum Antippen — alles direkt in der Visualisierung, ohne Konsole.
-Das Ziel bleibt im Formular, dafür braucht es den Objektbaum. Ohne Häkchen
-bleibt die Kachel so knapp wie zuvor; zwei Instanzen nebeneinander gehen also
-auch: eine zum Nachsehen, eine zum Stellen. Der Zustand der Uhr
+Mit dem Häkchen **„Schaltpunkte in der Kachel bedienbar machen"** wird die
+Kachel zur vollen Bedienung — in der Visualisierung, ohne Konsole:
+
+| In der Kachel | |
+|---|---|
+| Punkt-Schalter | einen Punkt aussetzen, ohne ihn zu löschen |
+| Uhr / SA / SU | feste Uhrzeit, Sonnenaufgang oder Sonnenuntergang |
+| Zeit | Zeitfeld, bei Astro die Verschiebung in Minuten |
+| Wochentage | Kürzel antippen; bei einer Tagesuhr fallen sie weg |
+| Ziel | Auswahl aller REGOsymcon-Kacheln und Szenen, mit ihrem Raum davor |
+| Zielwert | passend zum Profil — Aus/An als Auswahl, Prozent als Zahl |
+| × | Schaltpunkt löschen |
+| + Schaltpunkt | neuer Punkt, 18:00, alle Tage, noch ohne Ziel |
+| Tagesuhr / Wochenuhr | die Art der Uhr umstellen |
+
+Den Objektbaum kann eine Kachel nicht öffnen, deshalb ist das Ziel eine Liste
+statt eines Baums: alles, was REGOsymcon in den Räumen angelegt hat, plus die
+Szenen. Für alles andere — etwa eine beliebige Variable irgendwo im Baum —
+bleibt das Formular.
+
+Ohne Häkchen bleibt die Kachel so knapp wie zuvor; zwei Instanzen nebeneinander
+gehen also auch: eine zum Nachsehen, eine zum Stellen. Der Zustand der Uhr
 ist eine echte Variable — eine Szene kann sie also mitschalten, und der Verlauf
 lässt sich aufzeichnen.
 

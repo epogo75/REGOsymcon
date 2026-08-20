@@ -581,6 +581,34 @@ input.punkt-zeit:hover{border-color:var(--border)}
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:right;
 }
 .punkt-leer{font-size:.78rem; color:var(--text-faint)}
+.punkt select{
+    font-size:.72rem; color:var(--text); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:.1rem .15rem; max-width:100%; cursor:pointer;
+}
+.punkt-art{flex:0 0 auto}
+.punkt-ziel{flex:1 1 auto; min-width:0}
+select.punkt-wert{flex:0 0 auto; max-width:6.5rem}
+input.punkt-wert{
+    flex:0 0 auto; width:3.6rem; font-size:.72rem; color:var(--text);
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:.1rem .2rem; font-variant-numeric:tabular-nums;
+}
+.punkt-wert-leer{flex:0 0 auto; font-size:.72rem; color:var(--text-faint)}
+input.punkt-offset{width:3.4rem}
+.punkt-weg{
+    flex:0 0 auto; width:1.2rem; padding:0; line-height:1;
+    background:transparent; border:1px solid transparent; border-radius:var(--radius-sm);
+    color:var(--text-faint); font-size:.95rem; cursor:pointer;
+}
+.punkt-weg:hover{color:var(--danger); border-color:var(--danger-border)}
+.punkt-fuss{display:flex; gap:.4rem; width:100%}
+.punkt-fuss button{
+    flex:1 1 0; min-height:1.7rem; font-size:.72rem; cursor:pointer;
+    background:var(--surface-3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); color:var(--text);
+}
+.punkt-fuss button:hover{border-color:var(--accent); color:var(--accent)}
 .tile[data-type="zeitschaltuhr"] .stack{flex:1 1 auto; min-height:0}
 
 /* Verweis, der wie ein Knopf aussieht (URL-Aufruf) */
