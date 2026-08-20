@@ -6,6 +6,15 @@
             "caption": "Adresse (URL)"
         },
         {
+            "type": "CheckBox",
+            "name": "AsButton",
+            "caption": "Nur einen Knopf zeigen, statt die Seite einzubetten"
+        },
+        {
+            "type": "Label",
+            "caption": "Manche Seiten lassen sich nicht einbetten und wehren sich mit X-Frame-Options oder einer CSP ab. Bleibt die Kachel leer, hilft der Knopf — er öffnet die Seite in einem neuen Tab."
+        },
+        {
             "type": "ValidationTextBox",
             "name": "Label",
             "caption": "Beschriftung des Knopfs"

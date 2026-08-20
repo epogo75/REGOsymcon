@@ -35,7 +35,7 @@ Browser öffnen, die Regler und Knöpfe reagieren.
 | REGOvisu Wetterstation | Werteraster mit Beschriftungen, darunter die Ja/Nein-Meldungen als Pillen |
 | REGOvisu Info | Datum, Sonnenauf- und -untergang, Außentemperatur — steht auf der Startseite |
 | REGOvisu Taster | Ein Knopf, der auslöst — ohne Zustandsanzeige, weil ein Taster keinen hat |
-| REGOvisu URL-Aufruf | Ein Knopf, der eine Seite in einem neuen Tab öffnet |
+| REGOvisu URL-Aufruf | Die Seite selbst, eingebettet über die ganze Kachel |
 | REGOvisu Zähler | Leistung, Zählerstand und Heute, dahinter die weiteren Messwerte |
 | REGOvisu Zeitschaltuhr | Nächste Schaltung mit Ziel, AN/AUS und „Überspringen" |
 

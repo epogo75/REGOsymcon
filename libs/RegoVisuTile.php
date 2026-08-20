@@ -536,12 +536,17 @@ svg{display:block}
     background:var(--accent-bg); border-color:var(--accent); color:var(--accent);
 }
 
-/* Der URL-Aufruf hat nur einen Knopf -- der nimmt die ganze Kachel ein,
-   statt oben als schmaler Streifen zu sitzen. */
+/* Der URL-Aufruf zeigt entweder die Seite selbst oder einen Knopf -- beides
+   nimmt die ganze Kachel ein, statt oben als schmaler Streifen zu sitzen. */
 .tile[data-type="url"]{align-items:stretch}
 .tile[data-type="url"] .stack{flex:1 1 auto; min-height:0}
 .tile[data-type="url"] .buttons{flex:1 1 auto; min-height:0}
 .tile[data-type="url"] .knopf-link{height:100%; font-size:1rem}
+.tile[data-type="url"] .seite{
+    flex:1 1 auto; width:100%; min-height:0; display:block;
+    border:1px solid var(--border); border-radius:var(--radius-lg);
+    background:var(--surface-3);
+}
 
 /* Verweis, der wie ein Knopf aussieht (URL-Aufruf) */
 .knopf-link{

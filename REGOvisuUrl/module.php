@@ -5,10 +5,14 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RegoVisuTile.php';
 
 /**
- * URL-Aufruf -- ein Knopf, der eine Seite in einem neuen Tab öffnet.
+ * URL-Aufruf -- die Seite steht in der Kachel.
  *
  * Diese Funktion hat in REGOdeploy keine Gruppenadresse, sondern nur eine
  * Adresse im Netz; die Kachel bedient deshalb nichts auf dem Bus.
+ *
+ * Die Seite wird eingebettet, man sieht sie also sofort. Wehrt sich eine
+ * Seite dagegen -- viele setzen dafuer X-Frame-Options oder eine CSP --,
+ * bleibt die Kachel leer; dann hilft "Nur einen Knopf zeigen".
  */
 class REGOvisuUrl extends IPSModule
 {
@@ -20,6 +24,7 @@ class REGOvisuUrl extends IPSModule
 
         $this->RegisterPropertyString('Url', '');
         $this->RegisterPropertyString('Label', 'Öffnen');
+        $this->RegisterPropertyBoolean('AsButton', false);
 
         $this->SetVisualizationType(1);
     }
@@ -37,6 +42,15 @@ class REGOvisuUrl extends IPSModule
         if ($url === '') {
             return $this->RegoTile('url',
                 '<div class="line"><span class="muted">Keine Adresse hinterlegt</span></div>', '');
+        }
+
+        if (!$this->ReadPropertyBoolean('AsButton')) {
+            // Die Seite selbst, ueber die ganze Kachel.
+            $inner = '<iframe class="seite" src="' . htmlspecialchars($url, ENT_QUOTES) . '" '
+                . 'referrerpolicy="no-referrer" title="' . htmlspecialchars($this->ReadPropertyString('Label')) . '">'
+                . '</iframe>';
+
+            return $this->RegoTile('url', $inner, '');
         }
 
         $label = trim($this->ReadPropertyString('Label'));
