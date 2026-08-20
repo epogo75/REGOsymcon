@@ -605,9 +605,12 @@ button.punkt-zeit{background:var(--surface-2); border-color:var(--border)}
     background:var(--surface-1); border-radius:var(--radius-lg); padding:.4rem;
 }
 .waehler[hidden]{display:none}
+/* Schliessen steht links: oben rechts legt die Visualisierung ihr eigenes
+   Symbol zum Vergroessern ueber die Kachel, das verdeckt alles darunter. */
 .waehler-kopf{
-    display:flex; align-items:center; justify-content:space-between; gap:.4rem;
-    font-size:.9rem; font-weight:600; color:var(--text-faint); padding:0 .1rem .4rem;
+    display:flex; align-items:center; gap:.5rem;
+    font-size:.9rem; font-weight:600; color:var(--text-faint);
+    padding:0 2.6rem .4rem .1rem;
 }
 .waehler-zu{
     width:2rem; height:2rem; padding:0; line-height:1.2; font-size:1.1rem; cursor:pointer;

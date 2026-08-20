@@ -672,8 +672,9 @@ class REGOsymconZeitschaltuhr extends IPSModule
             . ($bedienbar
                 ? '<div class="punkte" id="rego-punkte"></div>'
                   . '<div class="waehler" id="rego-waehler" hidden>'
-                  . '<div class="waehler-kopf"><span id="rego-waehler-titel"></span>'
-                  . '<button type="button" class="waehler-zu" onclick="regoWahlZu()">×</button></div>'
+                  . '<div class="waehler-kopf">'
+                  . '<button type="button" class="waehler-zu" onclick="regoWahlZu()">×</button>'
+                  . '<span id="rego-waehler-titel"></span></div>'
                   . '<div class="waehler-liste" id="rego-waehler-liste"></div>'
                   . '</div>'
                   . '<div class="punkt-fuss">'
@@ -743,6 +744,7 @@ function regoZeitAuf(zeit, beim) {
     var liste = document.getElementById('rego-waehler-liste');
     document.getElementById('rego-waehler-titel').textContent = 'Uhrzeit';
 
+    var springen = true;
     var zeichnen = function () {
         liste.innerHTML = '';
         var spalten = document.createElement('div');
@@ -777,13 +779,21 @@ function regoZeitAuf(zeit, beim) {
         });
 
         liste.appendChild(spalten);
-        // Die gewaehlte Zahl in den Blick ruecken
-        Array.prototype.forEach.call(liste.querySelectorAll('.waehler-hier'), function (k) {
-            k.parentNode.scrollTop = k.offsetTop - k.parentNode.offsetTop - 40;
-        });
+
+        if (springen) {
+            // Die gewaehlte Zahl in die Mitte ihrer Spalte ruecken. offsetTop
+            // zaehlt schon ab der Spalte, die ist selbst positioniert.
+            Array.prototype.forEach.call(liste.querySelectorAll('.waehler-hier'), function (k) {
+                var spalte = k.parentNode;
+                spalte.scrollTop = k.offsetTop - (spalte.clientHeight / 2) + (k.offsetHeight / 2);
+            });
+        }
     };
 
+    // Nur beim Oeffnen springen: nach einem Klick steht die Zahl ohnehin unter
+    // dem Finger, ein Sprung waere dort nur ein Zucken.
     zeichnen();
+    springen = false;
     blatt.hidden = false;
 }
 function regoWaehler(klasse, titel, optionen, wert, beim) {
