@@ -624,6 +624,19 @@ button.punkt-zeit{background:var(--surface-2); border-color:var(--border)}
 }
 .waehler-eintrag:hover{border-color:var(--accent); color:var(--accent)}
 .waehler-hier{background:var(--surface-hover); border-color:var(--accent); font-weight:700}
+
+/* Uhrzeit: Stunde und Minute nebeneinander, jede Spalte scrollt fuer sich */
+.waehler-spalten{display:flex; gap:.4rem; min-height:0; height:100%; overflow:hidden}
+.waehler-spalte{
+    flex:1 1 0; display:flex; flex-direction:column; gap:.2rem;
+    overflow:auto; min-height:0; position:relative;
+}
+.waehler-spalte-kopf{
+    position:sticky; top:0; z-index:1; padding:.1rem .2rem;
+    background:var(--surface-1); color:var(--text-faint);
+    font-size:.72rem; font-weight:600; text-align:center;
+}
+.waehler-zahl{text-align:center; font-variant-numeric:tabular-nums}
 .punkt-art{flex:0 0 auto}
 /* Die Ziel-Auswahl darf schrumpfen, aber nicht verschwinden -- ohne
    Mindestbreite quetschen die Wochentage sie in einer schmalen Kachel auf

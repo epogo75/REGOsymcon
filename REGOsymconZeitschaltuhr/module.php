@@ -732,6 +732,60 @@ function regoWahlAuf(titel, optionen, wert, beim) {
     blatt.hidden = false;
     liste.scrollTop = 0;
 }
+// Uhrzeit: Stunde und Minute in zwei Spalten, jede Minute einzeln. Ein
+// Viertelstundenraster waere kuerzer, aber eine Zeitschaltuhr, die 06:35 nicht
+// kann, ist keine.
+function regoZeitAuf(zeit, beim) {
+    var teile = String(zeit || '00:00').split(':');
+    var stand = {stunde: Number(teile[0]) || 0, minute: Number(teile[1]) || 0};
+
+    var blatt = document.getElementById('rego-waehler');
+    var liste = document.getElementById('rego-waehler-liste');
+    document.getElementById('rego-waehler-titel').textContent = 'Uhrzeit';
+
+    var zeichnen = function () {
+        liste.innerHTML = '';
+        var spalten = document.createElement('div');
+        spalten.className = 'waehler-spalten';
+
+        [['Stunde', 24, 'stunde'], ['Minute', 60, 'minute']].forEach(function (spalte) {
+            var kasten = document.createElement('div');
+            kasten.className = 'waehler-spalte';
+
+            var kopf = document.createElement('span');
+            kopf.className = 'waehler-spalte-kopf';
+            kopf.textContent = spalte[0];
+            kasten.appendChild(kopf);
+
+            for (var i = 0; i < spalte[1]; i++) {
+                (function (wert) {
+                    var knopf = document.createElement('button');
+                    knopf.type = 'button';
+                    knopf.className = 'waehler-eintrag waehler-zahl'
+                        + (stand[spalte[2]] === wert ? ' waehler-hier' : '');
+                    knopf.textContent = ('0' + wert).slice(-2);
+                    knopf.onclick = function () {
+                        stand[spalte[2]] = wert;
+                        beim(('0' + stand.stunde).slice(-2) + ':' + ('0' + stand.minute).slice(-2));
+                        zeichnen();
+                    };
+                    kasten.appendChild(knopf);
+                })(i);
+            }
+
+            spalten.appendChild(kasten);
+        });
+
+        liste.appendChild(spalten);
+        // Die gewaehlte Zahl in den Blick ruecken
+        Array.prototype.forEach.call(liste.querySelectorAll('.waehler-hier'), function (k) {
+            k.parentNode.scrollTop = k.offsetTop - k.parentNode.offsetTop - 40;
+        });
+    };
+
+    zeichnen();
+    blatt.hidden = false;
+}
 function regoWaehler(klasse, titel, optionen, wert, beim) {
     var knopf = document.createElement('button');
     knopf.type = 'button';
@@ -789,25 +843,21 @@ function regoRenderPunkte(punkte) {
 
         if (punkt.zeitart) {
             var stufen = [];
-            for (var m = -120; m <= 120; m += 5) {
+            for (var m = -120; m <= 120; m++) {
                 stufen.push({wert: m, text: (m > 0 ? '+' : '') + m + ' min'});
             }
             oben.appendChild(regoWaehler('punkt-zeit punkt-offset', 'Verschiebung', stufen, punkt.verschiebung,
                 function (v) { regoAendern(punkt.index, 'verschiebung', Number(v)); }));
         } else {
-            var zeiten = [];
-            for (var stunde = 0; stunde < 24; stunde++) {
-                for (var minute = 0; minute < 60; minute += 15) {
-                    var t = ('0' + stunde).slice(-2) + ':' + ('0' + minute).slice(-2);
-                    zeiten.push({wert: t, text: t});
-                }
-            }
-            if (!zeiten.some(function (z) { return z.wert === punkt.zeit; })) {
-                zeiten.push({wert: punkt.zeit, text: punkt.zeit});
-                zeiten.sort(function (a, b) { return a.wert < b.wert ? -1 : 1; });
-            }
-            oben.appendChild(regoWaehler('punkt-zeit', 'Uhrzeit', zeiten, punkt.zeit,
-                function (v) { regoAendern(punkt.index, 'zeit', v); }));
+            var uhrzeit = document.createElement('button');
+            uhrzeit.type = 'button';
+            uhrzeit.className = 'waehler-knopf punkt-zeit';
+            uhrzeit.textContent = punkt.zeit;
+            uhrzeit.title = 'Uhrzeit';
+            uhrzeit.onclick = function () {
+                regoZeitAuf(punkt.zeit, function (v) { regoAendern(punkt.index, 'zeit', v); });
+            };
+            oben.appendChild(uhrzeit);
         }
 
         if (punkt.tage) {

@@ -166,7 +166,7 @@ Kachel zur vollen Bedienung — in der Visualisierung, ohne Konsole:
 |---|---|
 | Punkt-Schalter | einen Punkt aussetzen, ohne ihn zu löschen |
 | Uhr / SA / SU | feste Uhrzeit, Sonnenaufgang oder Sonnenuntergang |
-| Zeit | Zeitfeld, bei Astro die Verschiebung in Minuten |
+| Zeit | Stunde und Minute in zwei Spalten, jede Minute einzeln; bei Astro die Verschiebung in Minuten |
 | Wochentage | Kürzel antippen; bei einer Tagesuhr fallen sie weg |
 | Ziel | Auswahl aller REGOsymcon-Kacheln und Szenen, mit ihrem Raum davor |
 | Zielwert | passend zum Profil — Aus/An als Auswahl, Prozent als Zahl |
