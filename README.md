@@ -109,6 +109,14 @@ sonst nie genau.
 „Speichern" gibt es bewusst nur in der Instanz, nicht in der Kachel: ein
 Fehlgriff in der Visu würde die Szene überschreiben.
 
+Der Zielwert steht als Text in der Liste. Hat die Variable ein Profil mit
+Beschriftungen, wird die genommen — „Aus" statt „0". Beim Aufrufen versteht
+das Modul beide Schreibweisen, die des Profils und die übersetzte. Eigene
+Profile legt REGOvisu dafür nicht an; damit die Beschriftungen deutsch
+ankommen, muss Symcons Sprache gesetzt sein (`IPS_SetOption('Locale',
+'de_DE')`) — ohne Sprache übersetzt Symcon serverseitig nicht und es steht
+„Off".
+
 **Mitglieder aus einem Raum übernehmen:** im Formular einen Raum wählen und
 den Knopf drücken — die bedienbaren Variablen aller REGOvisu-Kacheln dieses
 Raums landen als Zeilen in der Liste, mit dem aktuellen Zustand als Zielwert.

@@ -1,0 +1,30 @@
+{
+    "translations": {
+        "de": {
+            "Off": "Aus",
+            "On": "An",
+            "Closed": "Geschlossen",
+            "Opened": "Offen",
+            "Open": "Offen",
+            "Up": "Auf",
+            "Down": "Ab",
+            "Decrease": "Dunkler",
+            "Increase": "Heller",
+            "Stop": "Stopp",
+            "Start": "Start",
+            "Inactive": "Inaktiv",
+            "Active": "Aktiv",
+            "Absent": "Abwesend",
+            "Present": "Anwesend",
+            "OK": "OK",
+            "Alert": "Alarm",
+            "Day": "Tag",
+            "Night": "Nacht",
+            "No": "Nein",
+            "Yes": "Ja",
+            "False": "Nein",
+            "True": "Ja",
+            "Aufrufen": "Aufrufen"
+        }
+    }
+}

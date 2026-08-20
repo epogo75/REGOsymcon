@@ -108,7 +108,7 @@ class REGOvisuSymconSzene extends IPSModule
             if (($variableID == 0) || !IPS_VariableExists($variableID)) {
                 continue;
             }
-            $mitglieder[$index]['Value'] = $this->AlsText(GetValue($variableID));
+            $mitglieder[$index]['Value'] = $this->AlsText($variableID, GetValue($variableID));
             $uebernommen++;
         }
 
@@ -166,7 +166,7 @@ class REGOvisuSymconSzene extends IPSModule
                 $mitglieder[] = [
                     'Active' => true,
                     'VariableID' => $variableID,
-                    'Value' => $this->AlsText(GetValue($variableID)),
+                    'Value' => $this->AlsText($variableID, GetValue($variableID)),
                     'Delay' => 0,
                 ];
                 $neu++;
@@ -234,7 +234,22 @@ JS;
     {
         switch (IPS_GetVariable($variableID)['VariableType']) {
             case 0:
-                return in_array(strtolower(trim($text)), ['1', 'true', 'an', 'ja', 'ein'], true);
+                // Zuerst die Beschriftungen des Profils ("An", "Auf",
+                // "ausgelöst"), danach die ueblichen Schreibweisen.
+                $profil = $this->Profil($variableID);
+                if ($profil !== null) {
+                    $gesucht = mb_strtolower(trim($text));
+                    foreach ($profil['Associations'] as $association) {
+                        $name = $association['Name'];
+                        // Beide Schreibweisen gelten: die des Profils und die
+                        // uebersetzte, die beim Speichern eingetragen wird.
+                        if ((mb_strtolower($name) === $gesucht)
+                            || (mb_strtolower(IPS_Translate($this->InstanceID, $name)) === $gesucht)) {
+                            return (bool) $association['Value'];
+                        }
+                    }
+                }
+                return in_array(mb_strtolower(trim($text)), ['1', 'true', 'an', 'ja', 'ein', 'auf'], true);
             case 1:
                 return (int) round((float) str_replace(',', '.', $text));
             case 2:
@@ -244,8 +259,17 @@ JS;
         }
     }
 
-    private function AlsText($wert): string
+    /**
+     * Der Zielwert steht als Text in der Liste. Hat die Variable ein Profil
+     * mit Beschriftungen, wird die genommen -- "An" liest sich besser als "1",
+     * und beim Aufrufen findet NachTyp() sie wieder.
+     */
+    private function AlsText(int $variableID, $wert): string
     {
+        $beschriftung = $this->AusProfil($variableID, $wert);
+        if ($beschriftung !== null) {
+            return $beschriftung;
+        }
         if (is_bool($wert)) {
             return $wert ? '1' : '0';
         }
@@ -253,6 +277,47 @@ JS;
             return rtrim(rtrim(number_format($wert, 3, '.', ''), '0'), '.');
         }
         return (string) $wert;
+    }
+
+    /**
+     * Beschriftung eines Wertes aus dem Profil der Variable, sonst null.
+     */
+    private function AusProfil(int $variableID, $wert): ?string
+    {
+        $profil = $this->Profil($variableID);
+        if ($profil === null) {
+            return null;
+        }
+        foreach ($profil['Associations'] as $association) {
+            if (((bool) $association['Value']) === ((bool) $wert)) {
+                // Symcons Beschriftungen sind intern englisch ("Off"/"On")
+                // und werden erst beim Anzeigen uebersetzt -- in der
+                // Mitgliederliste steht sonst Englisch. Eigene Profile
+                // dafuer anzulegen waere der falsche Weg.
+                return IPS_Translate($this->InstanceID, $association['Name']);
+            }
+        }
+        return null;
+    }
+
+    private function Profil(int $variableID): ?array
+    {
+        if (!IPS_VariableExists($variableID)) {
+            return null;
+        }
+        $variable = IPS_GetVariable($variableID);
+        if ($variable['VariableType'] != 0) {
+            return null;
+        }
+        $name = $variable['VariableCustomProfile'];
+        if ($name === '') {
+            $name = $variable['VariableProfile'];
+        }
+        if (($name === '') || !IPS_VariableProfileExists($name)) {
+            return null;
+        }
+        $profil = IPS_GetVariableProfile($name);
+        return empty($profil['Associations']) ? null : $profil;
     }
 
     /**
