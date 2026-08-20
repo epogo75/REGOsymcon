@@ -52,11 +52,18 @@
                 },
                 {
                     "caption": "Zielwert",
-                    "name": "Value",
+                    "name": "Anzeige",
                     "width": "160px",
+                    "add": ""
+                },
+                {
+                    "caption": "Wert",
+                    "name": "Value",
+                    "width": "10px",
+                    "visible": false,
                     "add": "",
                     "edit": {
-                        "type": "ValidationTextBox"
+                        "type": "SelectValue"
                     }
                 },
                 {
@@ -71,6 +78,20 @@
                         "suffix": "ms"
                     }
                 }
+            ],
+            "form": [
+                "$zeile = isset($Members['VariableID']) ? (int) $Members['VariableID'] : 0;",
+                "return json_decode(RGVSS_Zeilenformular($id, $zeile), true);"
+            ],
+            "onAdd": [
+                "$zeilen = [];",
+                "foreach ($Members as $zeile) { $zeilen[] = $zeile; }",
+                "RGVSS_Nachbeschriften($id, json_encode($zeilen));"
+            ],
+            "onEdit": [
+                "$zeilen = [];",
+                "foreach ($Members as $zeile) { $zeilen[] = $zeile; }",
+                "RGVSS_Nachbeschriften($id, json_encode($zeilen));"
             ]
         },
         {

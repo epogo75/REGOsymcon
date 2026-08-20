@@ -59,6 +59,91 @@ class REGOvisuSymconSzene extends IPSModule
     }
 
     /**
+     * Die Beschriftungen der Zielwerte entstehen beim Anzeigen neu -- ein
+     * geändertes Profil oder eine gelöschte Variable soll man in der Liste
+     * sehen, ohne die Zeile anzufassen.
+     */
+    public function GetConfigurationForm(): string
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+
+        foreach ($form['elements'] as $index => $element) {
+            if (($element['name'] ?? '') === 'Members') {
+                $form['elements'][$index]['values'] = $this->Beschriftet($this->Members());
+            }
+        }
+
+        return json_encode($form);
+    }
+
+    /**
+     * Das Bearbeitungsformular einer Zeile.
+     *
+     * Der Zielwert bekommt "SelectValue" -- Symcons Bedienelement, das sich
+     * nach dem Profil der Variable richtet: ein Schalter mit Aus/An, ein
+     * Schieber mit Prozent, eine Auswahl mit den Beschriftungen des Profils.
+     * Ohne Variable gibt es nichts zu wählen, dann bleibt es verborgen.
+     */
+    public function Zeilenformular(int $VariableID): string
+    {
+        $bekannt = ($VariableID > 0) && IPS_VariableExists($VariableID);
+
+        return json_encode([
+            [
+                'type'    => 'SelectVariable',
+                'name'    => 'VariableID',
+                'caption' => 'Variable',
+                'onChange' => 'RGVSS_ZeileVariable($id, $VariableID);',
+            ],
+            [
+                'type'       => 'SelectValue',
+                'name'       => 'Value',
+                'caption'    => 'Zielwert',
+                'variableID' => $bekannt ? $VariableID : 0,
+                'visible'    => $bekannt,
+            ],
+            [
+                'type'    => 'CheckBox',
+                'name'    => 'Active',
+                'caption' => 'Aktiv',
+            ],
+            [
+                'type'    => 'NumberSpinner',
+                'name'    => 'Delay',
+                'caption' => 'Verzögerung',
+                'minimum' => 0,
+                'maximum' => 60000,
+                'suffix'  => 'ms',
+            ],
+        ]);
+    }
+
+    /**
+     * Im Bearbeitungsformular wurde eine andere Variable gewählt: der
+     * Zielwert richtet sich neu aus und startet mit dem aktuellen Zustand.
+     */
+    public function ZeileVariable(int $VariableID): void
+    {
+        $bekannt = ($VariableID > 0) && IPS_VariableExists($VariableID);
+
+        $this->UpdateFormField('Value', 'variableID', $bekannt ? $VariableID : 0);
+        $this->UpdateFormField('Value', 'visible', $bekannt);
+        if ($bekannt) {
+            $this->UpdateFormField('Value', 'value', GetValue($VariableID));
+        }
+    }
+
+    /**
+     * Nach dem Bearbeiten einer Zeile: die Spalte "Zielwert" neu beschriften.
+     * Gespeichert wird der Wert selbst, angezeigt seine Beschriftung.
+     */
+    public function Nachbeschriften(string $Liste): void
+    {
+        $zeilen = json_decode($Liste, true);
+        $this->UpdateFormField('Members', 'values', json_encode($this->Beschriftet(is_array($zeilen) ? $zeilen : [])));
+    }
+
+    /**
      * Schreibt die Zielwerte. Auch für Ereignisse und Skripte gedacht.
      */
     public function Aufrufen(): int
@@ -75,7 +160,7 @@ class REGOvisuSymconSzene extends IPSModule
                 continue;
             }
 
-            $ziel = $this->NachTyp($variableID, (string) ($mitglied['Value'] ?? ''));
+            $ziel = $this->Wert($variableID, $mitglied['Value'] ?? '');
             if ($nurAbweichende && $this->Gleich(GetValue($variableID), $ziel)) {
                 continue;
             }
@@ -108,7 +193,8 @@ class REGOvisuSymconSzene extends IPSModule
             if (($variableID == 0) || !IPS_VariableExists($variableID)) {
                 continue;
             }
-            $mitglieder[$index]['Value'] = $this->AlsText($variableID, GetValue($variableID));
+            $mitglieder[$index]['Value'] = json_encode(GetValue($variableID));
+            $mitglieder[$index]['Anzeige'] = $this->Beschriftung($variableID, GetValue($variableID));
             $uebernommen++;
         }
 
@@ -166,7 +252,8 @@ class REGOvisuSymconSzene extends IPSModule
                 $mitglieder[] = [
                     'Active' => true,
                     'VariableID' => $variableID,
-                    'Value' => $this->AlsText($variableID, GetValue($variableID)),
+                    'Anzeige' => $this->Beschriftung($variableID, GetValue($variableID)),
+                    'Value' => json_encode(GetValue($variableID)),
                     'Delay' => 0,
                 ];
                 $neu++;
@@ -217,7 +304,7 @@ JS;
             if (($variableID == 0) || !IPS_VariableExists($variableID)) {
                 continue;
             }
-            if (!$this->Gleich(GetValue($variableID), $this->NachTyp($variableID, (string) ($mitglied['Value'] ?? '')))) {
+            if (!$this->Gleich(GetValue($variableID), $this->Wert($variableID, $mitglied['Value'] ?? ''))) {
                 return false;
             }
             $geprueft++;
@@ -260,44 +347,66 @@ JS;
     }
 
     /**
-     * Der Zielwert steht als Text in der Liste. Hat die Variable ein Profil
-     * mit Beschriftungen, wird die genommen -- "An" liest sich besser als "1",
-     * und beim Aufrufen findet NachTyp() sie wieder.
+     * Der gespeicherte Zielwert, im Typ der Variable.
+     *
+     * Das Bedienelement des Formulars legt ihn als JSON ab (true, 50,
+     * "Text"). Ältere Zeilen tragen dort noch die Beschriftung -- "Aus",
+     * "An" --, die bleibt lesbar.
      */
-    private function AlsText(int $variableID, $wert): string
+    private function Wert(int $variableID, $roh)
     {
-        $beschriftung = $this->AusProfil($variableID, $wert);
-        if ($beschriftung !== null) {
-            return $beschriftung;
+        if (!is_string($roh)) {
+            return $roh;
+        }
+
+        $dekodiert = json_decode($roh, true);
+        if (($dekodiert === null) && (trim($roh) !== 'null')) {
+            return $this->NachTyp($variableID, $roh);
+        }
+
+        switch (IPS_GetVariable($variableID)['VariableType']) {
+            case 0:
+                return (bool) $dekodiert;
+            case 1:
+                return (int) $dekodiert;
+            case 2:
+                return (float) $dekodiert;
+            default:
+                return (string) $dekodiert;
+        }
+    }
+
+    /**
+     * Wie der Zielwert in der Liste steht: so, wie Symcon ihn überall zeigt
+     * -- mit den Beschriftungen und der Einheit des Profils.
+     */
+    private function Beschriftung(int $variableID, $wert): string
+    {
+        if (($variableID > 0) && IPS_VariableExists($variableID)) {
+            $text = @GetValueFormattedEx($variableID, $wert);
+            if (is_string($text) && ($text !== '')) {
+                return $text;
+            }
         }
         if (is_bool($wert)) {
             return $wert ? '1' : '0';
-        }
-        if (is_float($wert)) {
-            return rtrim(rtrim(number_format($wert, 3, '.', ''), '0'), '.');
         }
         return (string) $wert;
     }
 
     /**
-     * Beschriftung eines Wertes aus dem Profil der Variable, sonst null.
+     * Die Mitgliederliste mit frisch beschrifteter Spalte "Zielwert".
      */
-    private function AusProfil(int $variableID, $wert): ?string
+    private function Beschriftet(array $mitglieder): array
     {
-        $profil = $this->Profil($variableID);
-        if ($profil === null) {
-            return null;
+        foreach ($mitglieder as $index => $mitglied) {
+            $variableID = (int) ($mitglied['VariableID'] ?? 0);
+            $mitglieder[$index]['Anzeige'] = (($variableID > 0) && IPS_VariableExists($variableID))
+                ? $this->Beschriftung($variableID, $this->Wert($variableID, $mitglied['Value'] ?? ''))
+                : 'Variable fehlt';
         }
-        foreach ($profil['Associations'] as $association) {
-            if (((bool) $association['Value']) === ((bool) $wert)) {
-                // Symcons Beschriftungen sind intern englisch ("Off"/"On")
-                // und werden erst beim Anzeigen uebersetzt -- in der
-                // Mitgliederliste steht sonst Englisch. Eigene Profile
-                // dafuer anzulegen waere der falsche Weg.
-                return IPS_Translate($this->InstanceID, $association['Name']);
-            }
-        }
-        return null;
+
+        return $mitglieder;
     }
 
     private function Profil(int $variableID): ?array
