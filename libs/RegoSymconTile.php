@@ -607,7 +607,8 @@ button.punkt-zeit{background:var(--surface-2); border-color:var(--border)}
     position:absolute; z-index:5; display:flex; flex-direction:column;
     top:var(--pad-top,8px); right:var(--pad-side,8px);
     bottom:var(--pad-bottom,8px); left:var(--pad-side,8px);
-    background:var(--surface-1); border-radius:var(--radius-lg); padding:.3rem;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:.3rem;
 }
 .waehler[hidden]{display:none}
 .waehler-kopf{
@@ -643,7 +644,7 @@ button.punkt-zeit{background:var(--surface-2); border-color:var(--border)}
 }
 .waehler-spalte-kopf{
     position:sticky; top:0; z-index:1; padding:.1rem .2rem;
-    background:var(--surface-1); color:var(--text-faint);
+    background:var(--surface); color:var(--text-faint);
     font-size:.72rem; font-weight:600; text-align:center;
 }
 .waehler-zahl{text-align:center; font-variant-numeric:tabular-nums}
